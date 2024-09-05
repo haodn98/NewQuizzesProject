@@ -1,0 +1,54 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="Eslint" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="HtmlUnknownTag" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="myValues">
+        <value>
+          <list size="7">
+            <item index="0" class="java.lang.String" itemvalue="nobr" />
+            <item index="1" class="java.lang.String" itemvalue="noembed" />
+            <item index="2" class="java.lang.String" itemvalue="comment" />
+            <item index="3" class="java.lang.String" itemvalue="noscript" />
+            <item index="4" class="java.lang.String" itemvalue="embed" />
+            <item index="5" class="java.lang.String" itemvalue="script" />
+            <item index="6" class="java.lang.String" itemvalue="color-card--white" />
+          </list>
+        </value>
+      </option>
+      <option name="myCustomValuesEnabled" value="true" />
+    </inspection_tool>
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <value>
+          <list size="16">
+            <item index="0" class="java.lang.String" itemvalue="Django" />
+            <item index="1" class="java.lang.String" itemvalue="psycopg2" />
+            <item index="2" class="java.lang.String" itemvalue="tzdata" />
+            <item index="3" class="java.lang.String" itemvalue="asgiref" />
+            <item index="4" class="java.lang.String" itemvalue="pytz" />
+            <item index="5" class="java.lang.String" itemvalue="sqlparse" />
+            <item index="6" class="java.lang.String" itemvalue="uvicorn" />
+            <item index="7" class="java.lang.String" itemvalue="djangorestframework-simplejwt" />
+            <item index="8" class="java.lang.String" itemvalue="social-auth-app-django" />
+            <item index="9" class="java.lang.String" itemvalue="cryptography" />
+            <item index="10" class="java.lang.String" itemvalue="djoser" />
+            <item index="11" class="java.lang.String" itemvalue="pycparser" />
+            <item index="12" class="java.lang.String" itemvalue="requests" />
+            <item index="13" class="java.lang.String" itemvalue="urllib3" />
+            <item index="14" class="java.lang.String" itemvalue="idna" />
+            <item index="15" class="java.lang.String" itemvalue="social-auth-core" />
+          </list>
+        </value>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyUnresolvedReferencesInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredIdentifiers">
+        <list>
+          <option value="str.joinlst" />
+          <option value="order.models" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>
