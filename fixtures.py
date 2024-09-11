@@ -1,10 +1,9 @@
 import asyncio
 
-from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
-from src.companies.models import CompanyRole, InvitationStatus, InvitationType, Base
+from src.companies.models import CompanyRole,Base
 from src.database import SQLALCHEMY_DATABASE_URL
 
 engine = create_async_engine(SQLALCHEMY_DATABASE_URL)
@@ -21,23 +20,6 @@ async def seed_roles(session: AsyncSession):
     session.add_all(roles)
     await session.commit()
 
-async def seed_invitation_status(session: AsyncSession):
-    statuses = [
-        InvitationStatus(id=1, name="accepted"),
-        InvitationStatus(id=2, name="rejected"),
-        InvitationStatus(id=3, name="revoked")
-    ]
-    session.add_all(statuses)
-    await session.commit()
-
-async def seed_invitation_types(session: AsyncSession):
-    types = [
-        InvitationType(id=1, name="invite"),
-        InvitationType(id=2, name="application")
-    ]
-    session.add_all(types)
-    await session.commit()
-
 
 async def seed_all():
     async with engine.begin() as conn:
@@ -47,7 +29,6 @@ async def seed_all():
         await seed_roles(session)
         await seed_invitation_status(session)
         await seed_invitation_types(session)
-        print("Fixtures successfully seeded!")
 
 
 if __name__ == '__main__':
