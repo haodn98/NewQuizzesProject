@@ -177,22 +177,22 @@ async def delete_invitational_letter_service(invitational_id, db):
     await db.commit()
 
 
-async def invitational_answer_letter_service(invitational_id, invitation_answer, invitation, db):
-    result = await db.execute(select(Invitation).where(Invitation.id == invitational_id,
+async def invitational_answer_letter_service(invitational_id, invitation_answer, db):
+    invitation = await db.execute(select(Invitation).where(Invitation.id == invitational_id,
                                                        Invitation.is_active == True))
-    user_invitation = result.scalar_one_or_none()
-    if not user_invitation:
+    invitation = invitation.scalar_one_or_none()
+    if not invitation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     if invitation_answer.answer == "rejected":
-        user_invitation.status = InvitationStatusEnum.REJECTED.value
-        user_invitation.is_private = False
+        invitation.status = InvitationStatusEnum.REJECTED.value
+        invitation.is_private = False
         db.add(invitation)
         await db.commit()
         return JSONResponse(content={"detail": "Invitation was rejected."},
                             status_code=status.HTTP_200_OK,
                             )
-    user_invitation.status = InvitationStatusEnum.ACCEPTED.value
-    user_invitation.is_active = False
+    invitation.status = InvitationStatusEnum.ACCEPTED.value
+    invitation.is_active = False
     db.add(invitation)
     await db.commit()
     await create_company_member_service(invitation.receiver_user_id, invitation.company_id, "member", db)

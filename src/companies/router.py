@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from fastapi_pagination.ext.sqlalchemy import paginate
 from fastapi_pagination.links import Page
-from sqlalchemy import select
+from sqlalchemy import select, Boolean
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
@@ -106,7 +106,7 @@ async def get_company_members(company_id: int,
 async def delete_company_members(company_id: int,
                                  company_member_user_id: CompanyMemberDeleteSchema,
                                  user: Annotated[dict, Depends(get_current_user)],
-                                 company: None = Depends(is_company_admin),
+                                 company: bool = Depends(is_company_admin),
                                  db: AsyncSession = Depends(get_db_session)):
     return await delete_company_member_service(company_id=company_id, user_id=company_member_user_id.user_id, db=db)
 
@@ -115,7 +115,7 @@ async def delete_company_members(company_id: int,
 async def update_company(company_id: int,
                          company_data: CompanyCreateUpdateSchema,
                          user: Annotated[dict, Depends(get_current_user)],
-                         company: None = Depends(is_company_admin),
+                         company: bool = Depends(is_company_admin),
                          db: AsyncSession = Depends(get_db_session)):
     """
     Update the details of a company by its ID.
@@ -133,7 +133,7 @@ async def update_company(company_id: int,
 @router.delete("/details/{company_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_company(company_id: int,
                          user: Annotated[dict, Depends(get_current_user)],
-                         company: None = Depends(is_company_admin),
+                         company: bool = Depends(is_company_admin),
                          db: AsyncSession = Depends(get_db_session)):
     """
         Delete a company by its ID.
@@ -150,7 +150,7 @@ async def delete_company(company_id: int,
 @router.put("/access/{company_id}")
 async def change_company_access(company_id: int,
                                 user: Annotated[dict, Depends(get_current_user)],
-                                company: None = Depends(is_company_admin),
+                                company: bool = Depends(is_company_admin),
                                 db: AsyncSession = Depends(get_db_session)):
     """
        Change the access type (public/private) of a company.
@@ -180,7 +180,7 @@ async def get_user_invitations(user: Annotated[dict, Depends(get_current_user)],
 @router.get("/company_inbox/applications/{company_id}")
 async def get_company_applications(company_id: int,
                                    user: Annotated[dict, Depends(get_current_user)],
-                                   company: None = Depends(is_company_admin),
+                                   company: bool = Depends(is_company_admin),
                                    db: AsyncSession = Depends(get_db_session)):
     return await get_company_applications_service(company_id, db)
 
@@ -188,7 +188,7 @@ async def get_company_applications(company_id: int,
 @router.get("/company_inbox/invites/{company_id}")
 async def get_company_invites(company_id: int,
                               user: Annotated[dict, Depends(get_current_user)],
-                              company: None = Depends(is_company_admin),
+                              company: bool = Depends(is_company_admin),
                               db: AsyncSession = Depends(get_db_session)):
     return await get_company_invitations_service(company_id, db)
 
@@ -247,7 +247,7 @@ async def user_stop_membership(company_id: int,
 @router.delete("/company_invitation/{invitation_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_invitational_letter(invitation_id: int,
                                      user: Annotated[dict, Depends(get_current_user)],
-                                     invitation: Invitation = Depends(is_invitation_sender),
+                                     invitation: bool = Depends(is_invitation_sender),
                                      db: AsyncSession = Depends(get_db_session)):
     """
         Revoke a previously sent invitation.
@@ -265,16 +265,16 @@ async def delete_invitational_letter(invitation_id: int,
 async def invitational_answer(invitation_id: int,
                               invitation_answer: InviteApplicationAnswerSchema,
                               user: Annotated[dict, Depends(get_current_user)],
-                              invitation: Invitation = Depends(is_invitation_receiver),
+                              invitation: bool = Depends(is_invitation_receiver),
                               db: AsyncSession = Depends(get_db_session)):
-    return await invitational_answer_letter_service(invitation_id, invitation_answer, invitation, db)
+    return await invitational_answer_letter_service(invitation_id, invitation_answer, db)
 
 
 @router.post("/company_application/answer/{application_id}")
 async def application_answer(application_id: int,
                              application_answer: InviteApplicationAnswerSchema,
                              user: Annotated[dict, Depends(get_current_user)],
-                             application: Application = Depends(is_application_receiver),
+                             application: bool = Depends(is_application_receiver),
                              db: AsyncSession = Depends(get_db_session)):
     return await application_answer_letter_service(application_id, application_answer, db)
 
@@ -282,7 +282,7 @@ async def application_answer(application_id: int,
 @router.get("/{company_id}/admin_user/")
 async def get_company_admin_user_list(company_id: int,
                                       user: Annotated[dict, Depends(get_current_user)],
-                                      company: None = Depends(is_company_admin),
+                                      company: bool = Depends(is_company_admin),
                                       db: AsyncSession = Depends(get_db_session)):
     return await get_company_admin_user_service(company_id, db)
 
@@ -291,7 +291,7 @@ async def get_company_admin_user_list(company_id: int,
 async def create_company_admin_user(company_id: int,
                                     admin_user_request: CreateDeleteCompanyAdminSchema,
                                     user: Annotated[dict, Depends(get_current_user)],
-                                    company: None = Depends(is_company_owner),
+                                    company: bool = Depends(is_company_owner),
                                     db: AsyncSession = Depends(get_db_session)):
     return await create_company_admin_user_service(company_id=company_id, admin_user_request=admin_user_request, db=db)
 
@@ -300,7 +300,7 @@ async def create_company_admin_user(company_id: int,
 async def delete_company_admin_user(company_id: int,
                                     admin_user_request: CreateDeleteCompanyAdminSchema,
                                     user: Annotated[dict, Depends(get_current_user)],
-                                    company: None = Depends(is_company_owner),
+                                    company: bool = Depends(is_company_owner),
                                     db: AsyncSession = Depends(get_db_session)):
     return await delete_company_admin_user_service(company_id=company_id, admin_user_request=admin_user_request, db=db)
 

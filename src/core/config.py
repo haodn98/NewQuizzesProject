@@ -26,6 +26,10 @@ class Settings(BaseSettings):
 
     REDIS_URL: str
 
+    MONGO_URL:str
+    MONGO_DB:str
+    MONGO_COLLECTION:str
+
     class Config:
         env_file = ".env"
 

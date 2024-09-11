@@ -8,6 +8,7 @@ from src.core.config import settings
 from src.base import Base
 from src.auth.models import *
 from src.companies.models import *
+from src.quizzes.models import *
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
