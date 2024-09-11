@@ -27,5 +27,8 @@ Migrations downgrade
     alembic downgrade -1
 
 Endpoints screen list:
-![image](https://github.com/user-attachments/assets/763d2a78-044a-496e-a5e9-30c1060374da)
-![image](https://github.com/user-attachments/assets/de457588-f39c-49f0-ad8f-003abbf85ef0)
+![image](https://github.com/user-attachments/assets/88bfe3b4-6365-416f-aaff-c59d928af84b)
+![image](https://github.com/user-attachments/assets/dcf0070e-c733-476f-b270-4c884899a1f4)
+![image](https://github.com/user-attachments/assets/7f6959f2-953a-4709-970b-d7e79fed32bc)
+
+
