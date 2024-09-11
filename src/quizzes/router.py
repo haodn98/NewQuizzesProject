@@ -142,20 +142,7 @@ async def delete_quizz(
         quiz: bool = Depends(is_company_quiz),
         db_mongo: AsyncIOMotorDatabase = Depends(get_mongo_database),
         db_postgres: AsyncSession = Depends(get_db_session)):
-    """
-    Endpoint to update a quiz.
 
-    Args:
-        company_id (int): The ID of the company that owns the quiz.
-        quiz_id (int): The ID of the quiz.
-        quiz_data (QuizModel): The quiz data in Pydantic model form.
-        user (dict): The current authenticated user.
-        company: Check if the user is an admin of the company.
-        db (AsyncIOMotorDatabase): MongoDB database instance.
-
-    Returns:
-        The updated quiz data.
-    """
     return await delete_quizzes_service(quiz_id, db_mongo)
 
 
