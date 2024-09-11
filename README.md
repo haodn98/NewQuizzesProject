@@ -1,5 +1,9 @@
 Getting Started
 
+Quizzes Project is my first pet-project, using FastAPI.
+User: FastAPI, Postgres, MongoDB, JWT Authentication, SQLAlchemy, Alembic
+TODO: Add redis, Celery, fix Docker 
+
 Install dependencies:
 
     $ pip install -r requirements.txt
