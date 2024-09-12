@@ -13,6 +13,7 @@ from src.companies.models import (Company,
 from src.utils.utils_companies import get_company_role, is_company_member
 
 
+
 async def get_company_by_id_service(company_id, db):
     result = await db.execute(select(Company).where(Company.id == company_id))
     company = result.scalar_one_or_none()
@@ -43,8 +44,9 @@ async def create_company_member_service(user_id, company_id, role, db):
         )
         db.add(company_member)
         await db.commit()
-    raise HTTPException(detail="User is already member of a company",
-                        status_code=status.HTTP_400_BAD_REQUEST)
+    else:
+        raise HTTPException(detail="User is already member of a company",
+                            status_code=status.HTTP_400_BAD_REQUEST)
 
 
 async def delete_company_member_service(user_id, company_id, db):

@@ -12,4 +12,5 @@ class QuizResults(Base):
     user_id = Column(Integer, ForeignKey('user.id'))
     company_id = Column(Integer, ForeignKey('company.id'))
     result = Column(Float, nullable=False)
+    questions_overall = Column(Integer)
     quiz_date = Column(DateTime, nullable=False, default=datetime.utcnow)
