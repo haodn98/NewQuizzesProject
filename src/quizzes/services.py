@@ -1,11 +1,15 @@
-from fastapi import HTTPException
+import json
+
+from fastapi import HTTPException, status
 from sqlalchemy import select
 
-from src.quizzes.manager import QuizManager
+from src.core.redis_config import get_redis, redis
+from src.quizzes.manager import QuizManager, QuizNotFound
 from src.quizzes.models import QuizResults
+from src.utils.utils_quizzes import get_quiz_json, get_quiz_csv
 
 
-async def get_all_quizzes_service(page,per_page,db):
+async def get_all_quizzes_service(page, per_page, db):
     """
     Retrieves all available quizzes from the database.
 
@@ -15,7 +19,7 @@ async def get_all_quizzes_service(page,per_page,db):
     Returns:
         A list of all quizzes retrieved from the database.
     """
-    return await QuizManager.get_all_quizzes_paginated(collection = db,query={},page=page,per_page=per_page)
+    return await QuizManager.get_all_quizzes_paginated(collection=db, query={}, page=page, per_page=per_page)
 
 
 async def get_company_quizzes_service(company_id, db):
@@ -76,10 +80,14 @@ async def update_quizzes_service(quiz_id, quiz_data, db):
     document = await QuizManager.update_quiz(quiz_id=quiz_id, update_data=quiz_data, db=db)
     return document
 
-async def delete_quizzes_service(quiz_id, db_mongo):
-    quiz_to_delete_mongo = await QuizManager.delete_quiz(db_mongo,quiz_id)
 
-    return quiz_to_delete_mongo
+async def delete_quizzes_service(quiz_id, db_mongo):
+    deleted_quiz = await QuizManager.delete_quiz(db_mongo, quiz_id)
+    if not deleted_quiz:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
+
+    return {"detail": "Quiz deleted successfully"}
+
 
 async def get_quiz_service(quiz_id, company_id, db):
     """
@@ -96,24 +104,27 @@ async def get_quiz_service(quiz_id, company_id, db):
        Raises:
            HTTPException: If the quiz is not found (404) or the company doesn't match (403).
        """
-    quiz = await QuizManager.get_quiz_no_answers(db, quiz_id)
-    if quiz is None:
-        return HTTPException(status_code=404, detail="Quiz not found")
-    if quiz.get("company_id") != company_id:
-        return HTTPException(status_code=403, detail="Quiz not connected to company")
-    return quiz
+    try:
+        quiz = await QuizManager.get_quiz_no_answers(db, quiz_id)
+        if quiz.get("company_id") != company_id:
+            raise HTTPException(status_code=403, detail="Quiz not connected to company")
+        return quiz
+    except QuizNotFound:
+        raise HTTPException(status_code=404, detail="Quiz not found")
 
 
-async def send_quiz_solution_service(user, company_id, quiz_id, answers_form, db_mongo, db_postgres):
+async def send_quiz_solution_service(user, company_id, quiz_id, answers_form, db_mongo, db_postgres, redis):
     quiz = await QuizManager.get_quiz(db=db_mongo, quiz_id=quiz_id)
     if quiz.get("company_id") != company_id:
-        return HTTPException(status_code=400, detail="Quiz not connected to company")
+        raise HTTPException(status_code=400, detail="Quiz not connected to company")
 
+    quiz_questions = quiz["questions"]
     quiz_answers = quiz["correct_answers"]
     answers_form = answers_form.dict()
     users_answers = answers_form.get("answers")
-    results = {}
-    max_mark = sum([len(value) for value in answers_form.get("answers").values()])
+    results = {"user": user.get("id"),
+               "company": company_id,
+               "quiz": quiz_id, }
     result = 0
 
     if len(quiz["correct_answers"]) != len(answers_form.get("answers")):
@@ -121,18 +132,33 @@ async def send_quiz_solution_service(user, company_id, quiz_id, answers_form, db
 
     for number, answer in users_answers.items():
         if set(quiz_answers[str(number)]) == set(answer):
+            results[f"Question {str(number)}"] = {
+                "question": str([question for question in quiz_questions if question["number"] == number]),
+                "answer": answer,
+                "result": "right"
+
+            }
             results["result " + str(number)] = "right"
             result += 1
         else:
-            results["result " + str(number)] = "wrong"
+            results[f"Question {str(number)}"] = {
+                "question": str([question for question in quiz_questions if question["number"] == number]),
+                "answer": answer,
+                "result": "wrong",
+            }
     user_result = QuizResults(
         user_id=user.get("id"),
         quiz_id=quiz_id,
         company_id=company_id,
-        result=result / max_mark * 100,
+        result=result,
+        questions_overall=len(quiz_questions)
     )
     db_postgres.add(user_result)
     await db_postgres.commit()
+    await db_postgres.refresh(user_result)
+    redis = await get_redis()
+    await redis.set(
+        f'Company {company_id} {user.get("id")} {quiz_id} {user_result.id}', json.dumps(results), ex=172800)
     return user_result
 
 
@@ -151,9 +177,64 @@ async def get_quiz_answers_service(quiz_id, company_id, db):
         Raises:
             HTTPException: If the quiz is not found (404) or the company doesn't match (403).
         """
-    quiz = await QuizManager.get_quiz(db, quiz_id)
-    if quiz is None:
-        return HTTPException(status_code=404, detail="Quiz not found")
-    if quiz.get("company_id") != company_id:
-        return HTTPException(status_code=403, detail="Quiz not connected to company")
-    return quiz
+    try:
+        quiz = await QuizManager.get_quiz(db, quiz_id)
+        if quiz.get("company_id") != company_id:
+            raise HTTPException(status_code=403, detail="Quiz not connected to company")
+        return quiz
+    except QuizNotFound:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+
+
+async def average_mark_service(user, db, company_id=None):
+    total_marks = 0
+    total_questions = 0
+    if company_id is None:
+        quizzes_results = await db.execute(select(QuizResults).where(QuizResults.user_id == user.get("id")))
+        quizzes_results = quizzes_results.scalars().all()
+    else:
+        quizzes_results = await db.execute(select(QuizResults).where(QuizResults.user_id == user.get("id"),
+                                                                     QuizResults.company_id == company_id))
+        quizzes_results = quizzes_results.scalars().all()
+    for quiz_result in quizzes_results:
+        total_marks += quiz_result.result
+        total_questions += quiz_result.questions_overall
+    return total_marks / total_questions
+
+
+async def get_user_quizzes_json_services(user, db, redis):
+    query = select(QuizResults).where(QuizResults.user_id == user.get("id"))
+    return await get_quiz_json(query=query, db=db, redis=redis)
+
+
+async def get_company_quizzes_results_json_services(company_id, db, redis):
+    query = select(QuizResults).where(QuizResults.company_id == company_id)
+    return await get_quiz_json(query=query, db=db, redis=redis)
+
+
+async def get_company_user_quizzes_results_json_services(company_id, user_id, redis, db):
+    query = select(QuizResults).where(QuizResults.company_id == company_id,
+                                      QuizResults.user_id == user_id)
+    return await get_quiz_json(query=query, db=db, redis=redis)
+
+
+async def get_quizzes_results_json_services(quiz_id, db, redis):
+    query = select(QuizResults).where(QuizResults.quiz_id == quiz_id)
+    return await get_quiz_json(query=query, db=db, redis=redis)
+
+async def get_user_quizzes_csv_services(user, db, redis):
+    query = select(QuizResults).where(QuizResults.user_id == user.get("id"))
+    return await get_quiz_csv(query=query, db=db, redis=redis)
+
+async def get_company_quizzes_results_csv_services(company_id, db, redis):
+    query = select(QuizResults).where(QuizResults.company_id == company_id)
+    return await get_quiz_csv(query=query, db=db, redis=redis)
+
+async def get_company_user_quizzes_results_csv_services(company_id, user_id, redis, db):
+    query = select(QuizResults).where(QuizResults.company_id == company_id,
+                                      QuizResults.user_id == user_id)
+    return await get_quiz_json(query=query, db=db, redis=redis)
+
+async def get_quizzes_results_csv_services(quiz_id, db, redis):
+    query = select(QuizResults).where(QuizResults.quiz_id == quiz_id)
+    return await get_quiz_json(query=query, db=db, redis=redis)

@@ -1,3 +1,4 @@
+import logging
 from fastapi import status, HTTPException
 from fastapi.params import Depends
 from sqlalchemy import select
@@ -7,8 +8,8 @@ from src.auth.models import User
 from src.auth.schemas import UserRead
 from src.database import get_db_session
 from src.utils.utils_auth import bcrypt_context, Validation
-from src.core.logging_config import logger
 
+logger = logging.getLogger(__name__)
 
 async def get_all_users_service(db: AsyncSession):
     try:
