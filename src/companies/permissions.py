@@ -1,14 +1,19 @@
+from dns.e164 import query
 from fastapi import Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.companies.models import (CompanyMember, Invitation, Application, CompanyRole)
-from src.database import get_db_session
+from src.companies.models import (CompanyMember, Invitation, Application, CompanyRole, Company)
+from src.database.database import get_db_session
 from src.utils.utils_auth import get_current_user
 
 
 async def is_company_admin(company_id: int, user: dict = Depends(get_current_user),
                            db: AsyncSession = Depends(get_db_session)):
+    result= await db.execute(select(Company).where(Company.id == company_id))
+    company = result.scalar_one_or_none()
+    if company is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     query = (
         select(CompanyMember)
         .join(CompanyRole, CompanyMember.role == CompanyRole.id)
@@ -20,7 +25,6 @@ async def is_company_admin(company_id: int, user: dict = Depends(get_current_use
     )
     result = await db.execute(query)
     company_member = result.scalar_one_or_none()
-
     if company_member is None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

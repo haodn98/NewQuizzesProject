@@ -5,6 +5,7 @@ from fastapi import (APIRouter,
                      HTTPException,
                      status, )
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi_cache.decorator import cache
 from fastapi_pagination.links import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy import select
@@ -16,13 +17,13 @@ from src.auth.schemas import (UserCreate,
                               UserUpdateRequestModel,
                               UserPasswordUpdateRequestModel, Token, UserRead, )
 from src.auth.services import (
-                               create_user_service,
-                               delete_user_service,
-                               get_user_by_id_service,
-                               update_user_service,
-                               user_update_password_service, )
+    create_user_service,
+    delete_user_service,
+    get_user_by_id_service,
+    update_user_service,
+    user_update_password_service, )
 from src.utils.utils_auth import authenticate_user, create_access_token, get_current_user
-from src.database import get_db_session
+from src.database.database import get_db_session
 
 router = APIRouter(
     prefix="/auth",
@@ -30,7 +31,7 @@ router = APIRouter(
 )
 
 
-@router.get("/users",response_model=Page[UserRead])
+@router.get("/users", response_model=Page[UserRead])
 async def get_users(db: AsyncSession = Depends(get_db_session)):
     return await paginate(db, select(User).order_by(User.registration_date))
 
@@ -64,14 +65,15 @@ async def user_update(user_id: int, user_update_request: UserUpdateRequestModel,
     return await update_user_service(user_id, user_update_request, db)
 
 
-@router.delete("/users")
-async def user_delete(user: Annotated[dict, Depends(get_current_user)],
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def user_delete(user_id: int,
+                      user: Annotated[dict, Depends(get_current_user)],
                       db: AsyncSession = Depends(get_db_session)):
-    return await delete_user_service(user, db)
+    return await delete_user_service(user_id, db)
 
 
 @router.put("/users/password/{user_id}")
-async def user_update(user_id: int,
-                      user_password_update_request: UserPasswordUpdateRequestModel,
-                      db: AsyncSession = Depends(get_db_session)):
+async def user_password_update(user_id: int,
+                               user_password_update_request: UserPasswordUpdateRequestModel,
+                               db: AsyncSession = Depends(get_db_session)):
     return await user_update_password_service(user_id, user_password_update_request, db)

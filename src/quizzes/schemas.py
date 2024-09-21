@@ -17,6 +17,7 @@ class QuizModel(BaseModel):
     created_at: str = Field(
         default_factory=lambda: datetime.now().strftime("%Y-%m-%d"))
     correct_answers: Dict[str, List[int]]
+    frequency: int
 
 
 class AnswerForm(BaseModel):

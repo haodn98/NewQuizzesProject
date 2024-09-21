@@ -9,10 +9,12 @@ from fastapi_cache.backends.redis import RedisBackend
 from fastapi_pagination import add_pagination
 
 from src.auth.router import router as auth_router
-from src.companies.router import router as company_router
+from src.companies.router import router as companies_router
 from src.core.config import settings
 from src.core.redis_config import init_redis_pool, close_redis_pool
 from src.quizzes.router import router as quizzes_router
+from src.notifications.routers import router as notifications_router
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -21,6 +23,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
     yield
     await close_redis_pool()
+
+
 app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
@@ -32,13 +36,16 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
-app.include_router(company_router)
+app.include_router(companies_router)
 app.include_router(quizzes_router)
+
+app.include_router(notifications_router)
 
 add_pagination(app)
 
+
 @app.get("/healthy")
-def health_check():
+async def health_check():
     return {
         "status_code": 200,
         "detail": "ok",

@@ -3,7 +3,8 @@ import json
 from fastapi import HTTPException, status
 from sqlalchemy import select
 
-from src.core.redis_config import get_redis, redis
+from src.core.redis_config import get_redis
+from src.notifications.services import quiz_created_notification_service
 from src.quizzes.manager import QuizManager, QuizNotFound
 from src.quizzes.models import QuizResults
 from src.utils.utils_quizzes import get_quiz_json, get_quiz_csv
@@ -40,7 +41,7 @@ async def get_company_quizzes_service(company_id, db):
     return quizzes
 
 
-async def create_quizzes_service(user, company_id, quiz_data, db):
+async def create_quizzes_service(user, company_id, quiz_data, db_mongo, db_postgres):
     """
     Creates a new quiz with the provided data.
 
@@ -58,7 +59,8 @@ async def create_quizzes_service(user, company_id, quiz_data, db):
     quiz_data["created_by_user_id"] = user.get("id")
     for index, question in enumerate(quiz_data["questions"]):
         question["number"] = index + 1
-    return await QuizManager.create_quiz(db, quiz_data)
+    await quiz_created_notification_service(company_id=company_id, quiz_data=quiz_data, db=db_postgres)
+    return await QuizManager.create_quiz(db_mongo, quiz_data)
 
 
 async def update_quizzes_service(quiz_id, quiz_data, db):
@@ -186,20 +188,34 @@ async def get_quiz_answers_service(quiz_id, company_id, db):
         raise HTTPException(status_code=404, detail="Quiz not found")
 
 
-async def average_mark_service(user, db, company_id=None):
-    total_marks = 0
-    total_questions = 0
-    if company_id is None:
-        quizzes_results = await db.execute(select(QuizResults).where(QuizResults.user_id == user.get("id")))
-        quizzes_results = quizzes_results.scalars().all()
-    else:
-        quizzes_results = await db.execute(select(QuizResults).where(QuizResults.user_id == user.get("id"),
-                                                                     QuizResults.company_id == company_id))
-        quizzes_results = quizzes_results.scalars().all()
-    for quiz_result in quizzes_results:
-        total_marks += quiz_result.result
-        total_questions += quiz_result.questions_overall
-    return total_marks / total_questions
+async def average_mark_service(user, db, max_day, company_id=None):
+    try:
+        total_marks = 0
+        total_questions = 0
+        if company_id is None:
+            quizzes_results = await db.execute(
+                select(QuizResults).where(QuizResults.user_id == user.get("id"), QuizResults.quiz_date <= max_day))
+            quizzes_results = quizzes_results.scalars().all()
+        else:
+            quizzes_results = await db.execute(select(QuizResults).where(QuizResults.user_id == user.get("id"),
+                                                                         QuizResults.company_id == company_id,
+                                                                         QuizResults.quiz_date <= max_day))
+            quizzes_results = quizzes_results.scalars().all()
+        for quiz_result in quizzes_results:
+            total_marks += quiz_result.result
+            total_questions += quiz_result.questions_overall
+        return total_marks / total_questions
+    except ZeroDivisionError:
+        return HTTPException(status_code=404, detail="No quiz results for this period of time")
+
+async def get_user_quiz_result_service(user_id, db):
+    results = await db.execute(select(QuizResults).where(QuizResults.user_id == user_id))
+    return results.scalars().all()
+
+
+async def get_quiz_results_service(quiz_id, db):
+    results = await db.execute(select(QuizResults).where(QuizResults.quiz_id == quiz_id))
+    return results.scalars().all()
 
 
 async def get_user_quizzes_json_services(user, db, redis):
@@ -222,19 +238,23 @@ async def get_quizzes_results_json_services(quiz_id, db, redis):
     query = select(QuizResults).where(QuizResults.quiz_id == quiz_id)
     return await get_quiz_json(query=query, db=db, redis=redis)
 
+
 async def get_user_quizzes_csv_services(user, db, redis):
     query = select(QuizResults).where(QuizResults.user_id == user.get("id"))
     return await get_quiz_csv(query=query, db=db, redis=redis)
 
+
 async def get_company_quizzes_results_csv_services(company_id, db, redis):
     query = select(QuizResults).where(QuizResults.company_id == company_id)
     return await get_quiz_csv(query=query, db=db, redis=redis)
+
 
 async def get_company_user_quizzes_results_csv_services(company_id, user_id, redis, db):
     query = select(QuizResults).where(QuizResults.company_id == company_id,
                                       QuizResults.user_id == user_id)
     return await get_quiz_json(query=query, db=db, redis=redis)
 
+
 async def get_quizzes_results_csv_services(quiz_id, db, redis):
     query = select(QuizResults).where(QuizResults.quiz_id == quiz_id)
-    return await get_quiz_json(query=query, db=db, redis=redis)
+    return await get_quiz_csv(query=query, db=db, redis=redis)

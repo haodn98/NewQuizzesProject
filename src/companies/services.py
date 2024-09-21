@@ -13,7 +13,6 @@ from src.companies.models import (Company,
 from src.utils.utils_companies import get_company_role, is_company_member
 
 
-
 async def get_company_by_id_service(company_id, db):
     result = await db.execute(select(Company).where(Company.id == company_id))
     company = result.scalar_one_or_none()
@@ -23,6 +22,10 @@ async def get_company_by_id_service(company_id, db):
 
 
 async def create_company_service(user, company_data, db):
+    result = await db.execute(select(Company).where(Company.name == company_data.name))
+    repeatable_company = result.scalar_one_or_none()
+    if repeatable_company:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
     company = Company(
         name=company_data.name,
         description=company_data.description,
@@ -50,33 +53,37 @@ async def create_company_member_service(user_id, company_id, role, db):
 
 
 async def delete_company_member_service(user_id, company_id, db):
-    result = await db.execute(select(CompanyMember).where(CompanyMember.user_id == user_id,
-                                                          CompanyMember.company_id == company_id))
-    company_member_to_delete = result.scalar_one_or_none()
-    if not company_member_to_delete:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
-    await db.delete(company_member_to_delete)
-    await db.commit()
-
-
-async def update_company_service(company_id, company_data, db):
     try:
-        result = await db.execute(select(Company).where(Company.id == company_id))
-        company = result.scalar_one_or_none()
-        if not company:
+        result = await db.execute(select(CompanyMember).where(CompanyMember.user_id == user_id,
+                                                              CompanyMember.company_id == company_id))
+        company_member_to_delete = result.scalar_one_or_none()
+        if not company_member_to_delete:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-        for key, value in company_data.dict(exclude_unset=True).items():
-            setattr(company, key, value)
-        db.add(company)
+        await db.delete(company_member_to_delete)
         await db.commit()
-        return company
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
+
+
+async def update_company_service(company_id, company_data, db):
+    result = await db.execute(select(Company).where(Company.id == company_id))
+    company = result.scalar_one_or_none()
+    if not company:
+        raise HTTPException(detail="company not found",
+                            status_code=status.HTTP_404_NOT_FOUND)
+
+    for key, value in company_data.dict(exclude_unset=True).items():
+        if key == "name":
+            if value == company_data.name:
+                continue
+        setattr(company, key, value)
+    db.add(company)
+    await db.commit()
+    return company
 
 
 async def change_company_access_service(company_id, db):
@@ -102,7 +109,7 @@ async def delete_company_service(company_id, db):
     company = result.scalar_one_or_none()
     if not company:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    db.delete(company)
+    await db.delete(company)
     await db.commit()
 
 
@@ -130,8 +137,8 @@ async def create_invitational_letter(user, invitational_letter, db):
     return invitation
 
 
-async def get_users_invitations_service(user, db):
-    result = await db.execute(select(Invitation).where(Invitation.receiver_user_id == user.get("id")))
+async def get_users_invitations_service(user_id, db):
+    result = await db.execute(select(Invitation).where(Invitation.receiver_user_id == user_id))
     invitations = result.scalars().all()
     if not invitations:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
@@ -181,7 +188,7 @@ async def delete_invitational_letter_service(invitational_id, db):
 
 async def invitational_answer_letter_service(invitational_id, invitation_answer, db):
     invitation = await db.execute(select(Invitation).where(Invitation.id == invitational_id,
-                                                       Invitation.is_active == True))
+                                                           Invitation.is_active == True))
     invitation = invitation.scalar_one_or_none()
     if not invitation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
@@ -235,7 +242,7 @@ async def create_application_letter(user, application_letter, db):
     return application
 
 
-async def create_company_admin_user_service(company_id, admin_user_request,db):
+async def create_company_admin_user_service(company_id, admin_user_request, db):
     admin_user = await db.execute(select(CompanyMember).where(CompanyMember.company_id == company_id,
                                                               CompanyMember.user_id == admin_user_request.user_id))
     admin_user = admin_user.scalar_one_or_none()
@@ -255,8 +262,8 @@ async def get_company_admin_user_service(company_id, db):
         .join(CompanyMember, User.id == CompanyMember.user_id)
         .join(CompanyRole, CompanyMember.role == CompanyRole.id)
         .where(CompanyMember.company_id == company_id,
-            CompanyRole.name.in_(["owner", "admin"])
-        ))
+               CompanyRole.name.in_(["owner", "admin"])
+               ))
     admin_users = result.all()
     if not admin_users:
         raise HTTPException(detail="There is no admins",

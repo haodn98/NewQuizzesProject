@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 from src.companies.models import CompanyRole,Base
-from src.database import SQLALCHEMY_DATABASE_URL
+from src.database.database import SQLALCHEMY_DATABASE_URL
 
 engine = create_async_engine(SQLALCHEMY_DATABASE_URL)
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
@@ -27,8 +27,6 @@ async def seed_all():
 
     async with AsyncSessionLocal() as session:
         await seed_roles(session)
-        await seed_invitation_status(session)
-        await seed_invitation_types(session)
 
 
 if __name__ == '__main__':

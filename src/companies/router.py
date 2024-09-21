@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
+from fastapi_cache.decorator import cache
 from fastapi_pagination.ext.sqlalchemy import paginate
 from fastapi_pagination.links import Page
 from sqlalchemy import select, Boolean
@@ -41,7 +42,7 @@ from src.companies.services import (create_company_service,
                                     create_company_admin_user_service,
                                     delete_company_admin_user_service,
                                     get_company_admin_user_service)
-from src.database import get_db_session
+from src.database.database import get_db_session
 from src.utils.utils_auth import get_current_user
 
 router = APIRouter(
@@ -51,6 +52,7 @@ router = APIRouter(
 
 
 @router.get("", response_model=Page[CompanyRead])
+@cache(expire=30)
 async def get_all_companies(db: AsyncSession = Depends(get_db_session)):
     """
        Retrieve a paginated list of all companies.
@@ -61,7 +63,7 @@ async def get_all_companies(db: AsyncSession = Depends(get_db_session)):
     return await paginate(db, select(Company).where(Company.is_private == False).order_by(Company.registration_date))
 
 
-@router.post("")
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def create_company(company: CompanyCreateUpdateSchema,
                          user: Annotated[dict, Depends(get_current_user)],
                          db: AsyncSession = Depends(get_db_session)):
@@ -77,6 +79,7 @@ async def create_company(company: CompanyCreateUpdateSchema,
 
 
 @router.get("/details/{company_id}")
+@cache(expire=30)
 async def get_company_by_id(company_id: int, db: AsyncSession = Depends(get_db_session)):
     """
     Retrieve details of a company by its ID.
@@ -89,6 +92,7 @@ async def get_company_by_id(company_id: int, db: AsyncSession = Depends(get_db_s
 
 
 @router.get("/details/{company_id}/members")
+@cache(expire=30)
 async def get_company_members(company_id: int,
                               user: Annotated[dict, Depends(get_current_user)],
                               db: AsyncSession = Depends(get_db_session)):
@@ -164,8 +168,10 @@ async def change_company_access(company_id: int,
     return await change_company_access_service(company_id=company_id, db=db)
 
 
-@router.get("/user_inbox")
-async def get_user_invitations(user: Annotated[dict, Depends(get_current_user)],
+@router.get("/user_inbox/invitations/{user_id}")
+@cache(expire=30)
+async def get_user_invitations(user_id: int,
+                               user: Annotated[dict, Depends(get_current_user)],
                                db: AsyncSession = Depends(get_db_session)):
     """
        Retrieve the inbox of invitations for the current user.
@@ -174,10 +180,11 @@ async def get_user_invitations(user: Annotated[dict, Depends(get_current_user)],
        :param db: The asynchronous database session.
        :return: A list of invitations received by the current user.
        """
-    return await get_users_invitations_service(user, db)
+    return await get_users_invitations_service(user_id, db)
 
 
 @router.get("/company_inbox/applications/{company_id}")
+@cache(expire=30)
 async def get_company_applications(company_id: int,
                                    user: Annotated[dict, Depends(get_current_user)],
                                    company: bool = Depends(is_company_admin),
@@ -186,6 +193,7 @@ async def get_company_applications(company_id: int,
 
 
 @router.get("/company_inbox/invites/{company_id}")
+@cache(expire=30)
 async def get_company_invites(company_id: int,
                               user: Annotated[dict, Depends(get_current_user)],
                               company: bool = Depends(is_company_admin),
@@ -194,12 +202,14 @@ async def get_company_invites(company_id: int,
 
 
 @router.get("/users_companies")
+@cache(expire=30)
 async def get_users_companies(user: Annotated[dict, Depends(get_current_user)],
                               db: AsyncSession = Depends(get_db_session)):
     return await get_users_companies_service(user.get("id"), db)
 
 
 @router.get("/users_applications")
+@cache(expire=30)
 async def get_users_applications(user: Annotated[dict, Depends(get_current_user)],
                                  db: AsyncSession = Depends(get_db_session)):
     return await get_users_applications_service(user.get("id"), db)
@@ -280,6 +290,7 @@ async def application_answer(application_id: int,
 
 
 @router.get("/{company_id}/admin_user/")
+@cache(expire=30)
 async def get_company_admin_user_list(company_id: int,
                                       user: Annotated[dict, Depends(get_current_user)],
                                       company: bool = Depends(is_company_admin),

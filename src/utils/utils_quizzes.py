@@ -2,13 +2,9 @@ import csv
 import io
 import json
 
-from fastapi.params import Depends
+
 from redis.asyncio.client import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from src.core.redis_config import get_redis
-from src.database import get_db_session
-
 
 async def get_quiz_json(query,
                         db: AsyncSession,

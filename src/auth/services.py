@@ -6,10 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.models import User
 from src.auth.schemas import UserRead
-from src.database import get_db_session
+from src.database.database import get_db_session
 from src.utils.utils_auth import bcrypt_context, Validation
 
 logger = logging.getLogger(__name__)
+
 
 async def get_all_users_service(db: AsyncSession):
     try:
@@ -62,46 +63,38 @@ async def create_user_service(user_to_create, db: AsyncSession = Depends(get_db_
 
 
 async def update_user_service(user_id: int, user_update_request, db: AsyncSession = Depends(get_db_session), ):
-    try:
-        result = await db.execute(select(User).where(User.id == user_id))
-        user = result.scalar_one_or_none()
-        if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-        for key, value in user_update_request.dict(exclude_unset=True).items():
-            setattr(user, key, value)
-            if key == "email":
+    for key, value in user_update_request.dict(exclude_unset=True).items():
+        setattr(user, key, value)
+        if key == "email":
+            try:
                 Validation.validate_email(value)
+            except Exception as e:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=str(e)
+                )
+    db.add(user)
+    await db.commit()
+    logger.info(
+        f"User with ID {user_id} updated with data: "
+        f"{ {key: value for key, value in user_update_request.dict(exclude_unset=True).items()} }"
+    )
+    return user
 
-        db.add(user)
-        await db.commit()
-        logger.info(
-            f"User with ID {user_id} updated with data: "
-            f"{ {key: value for key, value in user_update_request.dict(exclude_unset=True).items()} }"
-        )
-        return user
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
 
-
-async def delete_user_service(user: dict, db: AsyncSession):
-    try:
-        result = await db.execute(select(User).where(User.id == user.get("id")))
-        user = result.scalar_one_or_none()
-        if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-        await db.delete(user)
-        await db.commit()
-        logger.info(f"User with ID {user.id} deleted")
-        return user
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
+async def delete_user_service(user_id: int, db: AsyncSession):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    await db.delete(user)
+    await db.commit()
+    logger.info(f"User with ID {user.id} deleted")
 
 
 async def user_update_password_service(user_id: int, user_new_password_request, db: AsyncSession):

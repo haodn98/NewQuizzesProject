@@ -12,7 +12,7 @@ from sqlalchemy import select
 
 from src.auth.models import User
 from src.core.config import settings
-from src.database import AsyncSession
+from src.database.database import AsyncSession
 
 bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/jwt/login")
