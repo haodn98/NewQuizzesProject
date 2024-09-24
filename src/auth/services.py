@@ -12,30 +12,13 @@ from src.utils.utils_auth import bcrypt_context, Validation
 logger = logging.getLogger(__name__)
 
 
-async def get_all_users_service(db: AsyncSession):
-    try:
-        result = await db.execute(select(User.id, User.username, User.email))
-        all_users = [UserRead(id=user[0], username=user[1], email=user[2]) for user in result.all()]
-        return all_users
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
-
-
 async def get_user_by_id_service(user_id: int, db: AsyncSession):
-    try:
-        result = await db.execute(select(User).where(User.id == user_id))
-        user = result.scalar_one_or_none()
-        if user is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-        return user
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="User not found")
+    return user
 
 
 async def create_user_service(user_to_create, db: AsyncSession = Depends(get_db_session)):

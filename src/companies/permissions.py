@@ -10,10 +10,13 @@ from src.utils.utils_auth import get_current_user
 
 async def is_company_admin(company_id: int, user: dict = Depends(get_current_user),
                            db: AsyncSession = Depends(get_db_session)):
-    result= await db.execute(select(Company).where(Company.id == company_id))
-    company = result.scalar_one_or_none()
+    company = await db.execute(select(Company).where(Company.id == company_id))
+    company = company.scalar_one_or_none()
     if company is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Company does not exist"
+        )
     query = (
         select(CompanyMember)
         .join(CompanyRole, CompanyMember.role == CompanyRole.id)
@@ -35,6 +38,13 @@ async def is_company_admin(company_id: int, user: dict = Depends(get_current_use
 
 async def is_company_owner(company_id: int, user: dict = Depends(get_current_user),
                            db: AsyncSession = Depends(get_db_session)):
+    company = await db.execute(select(Company).where(Company.id == company_id))
+    company = company.scalar_one_or_none()
+    if company is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Company does not exist"
+        )
     query = (
         select(CompanyMember)
         .join(CompanyRole, CompanyMember.role == CompanyRole.id)
@@ -46,7 +56,6 @@ async def is_company_owner(company_id: int, user: dict = Depends(get_current_use
     )
     result = await db.execute(query)
     company_member = result.scalar_one_or_none()
-
     if company_member is None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -57,6 +66,13 @@ async def is_company_owner(company_id: int, user: dict = Depends(get_current_use
 
 async def is_company_member(company_id: int, user: dict = Depends(get_current_user),
                             db: AsyncSession = Depends(get_db_session)):
+    company = await db.execute(select(Company).where(Company.id == company_id))
+    company = company.scalar_one_or_none()
+    if company is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Company does not exist"
+        )
     query = (
         select(CompanyMember)
         .join(CompanyRole, CompanyMember.role == CompanyRole.id)
@@ -79,28 +95,35 @@ async def is_company_member(company_id: int, user: dict = Depends(get_current_us
 
 async def is_invitation_sender(invitation_id: int, user: dict = Depends(get_current_user),
                                db: AsyncSession = Depends(get_db_session)):
-    result = await db.execute(select(Invitation).where(Invitation.id == invitation_id,
-                                                       Invitation.sender_user_id == user.get("id"),
-                                                       ))
+    result = await db.execute(select(Invitation).where(Invitation.id == invitation_id))
     invitation = result.scalar_one_or_none()
+
     if invitation is None:
         raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invitation does not exist"
+        )
+    if invitation.sender_user_id != user.get("id"):
+        raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to access this resource."
+            detail="You do not have permission to access this resource"
         )
     return True
 
 
 async def is_invitation_receiver(invitation_id: int, user: dict = Depends(get_current_user),
                                  db: AsyncSession = Depends(get_db_session)):
-    result = await db.execute(select(Invitation).where(Invitation.id == invitation_id,
-                                                       Invitation.receiver_user_id == user.get("id"),
-                                                       ))
+    result = await db.execute(select(Invitation).where(Invitation.id == invitation_id))
     invitation = result.scalar_one_or_none()
     if invitation is None:
         raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invitation does not exist"
+        )
+    if invitation.receiver_user_id != user.get("id"):
+        raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to access this resource."
+            detail="You do not have permission to access this resource"
         )
     return True
 
@@ -112,8 +135,8 @@ async def is_application_receiver(application_id: int, user: dict = Depends(get_
 
     if application is None:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to access this resource."
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Application not found"
         )
     await is_company_admin(application.company_id, user, db)
 

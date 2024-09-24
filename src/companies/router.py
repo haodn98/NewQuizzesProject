@@ -208,14 +208,15 @@ async def get_users_companies(user: Annotated[dict, Depends(get_current_user)],
     return await get_users_companies_service(user.get("id"), db)
 
 
-@router.get("/users_applications")
+@router.get("/users_applications/{user_id}")
 @cache(expire=30)
-async def get_users_applications(user: Annotated[dict, Depends(get_current_user)],
+async def get_users_applications(user_id: int,
+                                 user: Annotated[dict, Depends(get_current_user)],
                                  db: AsyncSession = Depends(get_db_session)):
-    return await get_users_applications_service(user.get("id"), db)
+    return await get_users_applications_service(user_id, db)
 
 
-@router.post("/company_invite")
+@router.post("/company_invite",status_code=status.HTTP_201_CREATED)
 async def create_company_invite(invitation_letter: InviteLetterSchema,
                                 user: Annotated[dict, Depends(get_current_user)],
                                 db: AsyncSession = Depends(get_db_session)):
@@ -232,7 +233,7 @@ async def create_company_invite(invitation_letter: InviteLetterSchema,
     return await create_invitational_letter(user, invitation_letter, db)
 
 
-@router.post("/company_application")
+@router.post("/company_application",status_code=status.HTTP_201_CREATED)
 async def create_company_application(application_letter: ApplicationLetterSchema,
                                      user: Annotated[dict, Depends(get_current_user)],
                                      db: AsyncSession = Depends(get_db_session)):
@@ -247,11 +248,12 @@ async def create_company_application(application_letter: ApplicationLetterSchema
     return await create_application_letter(user, application_letter, db)
 
 
-@router.delete("/{company_id}/membership_stop/")
+@router.delete("/{company_id}/membership_stop/{user_id}",status_code=status.HTTP_204_NO_CONTENT)
 async def user_stop_membership(company_id: int,
+                               user_id:int,
                                user: Annotated[dict, Depends(get_current_user)],
                                db: AsyncSession = Depends(get_db_session)):
-    return await delete_company_member_service(user_id=user.get("id"), company_id=company_id, db=db)
+    return await delete_company_member_service(user_id=user_id, company_id=company_id, db=db)
 
 
 @router.delete("/company_invitation/{invitation_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -289,7 +291,7 @@ async def application_answer(application_id: int,
     return await application_answer_letter_service(application_id, application_answer, db)
 
 
-@router.get("/{company_id}/admin_user/")
+@router.get("/admin_user/{company_id}")
 @cache(expire=30)
 async def get_company_admin_user_list(company_id: int,
                                       user: Annotated[dict, Depends(get_current_user)],
@@ -298,7 +300,7 @@ async def get_company_admin_user_list(company_id: int,
     return await get_company_admin_user_service(company_id, db)
 
 
-@router.post("/{company_id}/admin_user/")
+@router.post("/admin_user/{company_id}")
 async def create_company_admin_user(company_id: int,
                                     admin_user_request: CreateDeleteCompanyAdminSchema,
                                     user: Annotated[dict, Depends(get_current_user)],
@@ -307,7 +309,7 @@ async def create_company_admin_user(company_id: int,
     return await create_company_admin_user_service(company_id=company_id, admin_user_request=admin_user_request, db=db)
 
 
-@router.delete("/{company_id}/admin_user/")
+@router.delete("/admin_user/{company_id}")
 async def delete_company_admin_user(company_id: int,
                                     admin_user_request: CreateDeleteCompanyAdminSchema,
                                     user: Annotated[dict, Depends(get_current_user)],

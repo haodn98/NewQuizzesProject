@@ -93,7 +93,7 @@ async def test_company_roles():
 @pytest.fixture(scope="session")
 async def test_company_without_member():
     company = Company(
-        name="test company",
+        name="test company no members",
         description="test company descriptions",
     )
     async with async_session_test() as db:
@@ -107,7 +107,7 @@ async def test_company_without_member():
 @pytest.fixture(scope="session")
 async def test_company_with_member(test_user, test_company_roles):
     company = Company(
-        name="test company",
+        name="test company with members",
         description="test company descriptions",
     )
     async with async_session_test() as db:

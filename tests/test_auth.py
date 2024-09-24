@@ -2,7 +2,10 @@ import jwt
 import pytest
 from dns.dnssecalgs import algorithms
 from httpx import AsyncClient
+from starlette import status
 
+from src.auth import factories
+from src.auth.models import User
 from src.utils.utils_auth import authenticate_user
 from src.core.config import settings
 from tests.conftest import ac, async_session_test
@@ -10,9 +13,33 @@ from tests.conftest import ac, async_session_test
 
 @pytest.mark.asyncio
 async def test_get_all_users(ac: AsyncClient, test_user):
+    await factories.UserFactory.create_batch(10)
+
     request = await ac.get("/auth/users")
-    assert len(request.json()["items"]) == 1
+    assert len(request.json()["items"]) == 11
     assert request.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_get_all_users_paginated(ac: AsyncClient, test_user):
+    await factories.UserFactory.create_batch(10)
+
+    request = await ac.get("/auth/users?page=1&size=5")
+    assert len(request.json()["items"]) == 5
+    assert request.status_code == 200
+
+async def test_get_user_by_id(ac: AsyncClient, test_user):
+
+    request = await ac.get(f"/auth/users/{test_user.id}")
+    assert request.status_code == 200
+    assert request.json()["id"] == test_user.id
+
+async def test_get_user_by_id_wrong_id(ac: AsyncClient):
+
+    request = await ac.get(f"/auth/users/1000")
+    assert request.status_code == status.HTTP_404_NOT_FOUND
+    assert request.json()["detail"] == "User not found"
+
 
 
 async def test_login(ac: AsyncClient, test_user):
@@ -24,6 +51,13 @@ async def test_login(ac: AsyncClient, test_user):
 
     assert decode_token["username"] == test_user.username
     assert decode_token["id"] == test_user.id
+
+async def test_login_no_user(ac: AsyncClient):
+    data = {"username": "user_name", "password": "testpassword"}
+    response = await ac.post("/auth/jwt/login", data=data)
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
 
 
 async def test_login_wrong_credentials(ac: AsyncClient, test_user):
@@ -85,14 +119,26 @@ async def test_user_update_wrong_id(ac: AsyncClient, test_user):
     response = await ac.put("/auth/users/1000", json=used_data)
     assert response.status_code == 404
 
+
 async def test_password_update(ac: AsyncClient, test_user):
     used_data = {"password": "testpassword",
-                 "new_password": "Itsnewpassword123!",}
+                 "new_password": "Itsnewpassword123!", }
     response = await ac.put(f"/auth/users/password/{test_user.id}", json=used_data)
 
     assert response.status_code == 200
 
-async def test_user_delete(ac: AsyncClient, test_user):
+
+async def test_user_delete(ac: AsyncClient, ):
+    async with async_session_test() as session:
+        test_user = User(
+            username="TestUserDelete",
+            email="TestUserDelete@gmail.com",
+            hashed_password="testpassword",
+
+        )
+        session.add(test_user)
+        await session.commit()
+        await session.refresh(test_user)
     response = await ac.delete(f"/auth/users/{test_user.id}")
 
     assert response.status_code == 204
