@@ -3,6 +3,7 @@ from typing import AsyncGenerator
 
 import pytest
 from httpx import AsyncClient, ASGITransport
+from motor.motor_asyncio import AsyncIOMotorClient
 from sqlalchemy import text, NullPool
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, defer
@@ -13,9 +14,11 @@ from watchfiles import awatch
 from src.auth.models import User
 from src.companies.models import CompanyRole, Company, CompanyMember
 from src.core.config import settings
+from src.core.mongo_config import get_mongo_database
 from src.database.base import Base
 from src.database.database import get_db_session
 from src.main import app, lifespan
+from src.quizzes.manager import QuizManager
 from src.utils.utils_auth import bcrypt_context, get_current_user
 
 SQLALCHEMY_DATABASE_URL = f"postgresql+asyncpg://{settings.TEST_DB_USER}:{settings.TEST_DB_PASS}@{settings.TEST_DB_HOST}:{settings.TEST_DB_PORT}/{settings.TEST_DB_NAME}"
@@ -37,17 +40,31 @@ async def override_get_current_user():
     return {"username": "TestUser1", "id": 1}
 
 
+async def override_get_mongo_database():
+    client = AsyncIOMotorClient(settings.MONGO_URL)
+    db = client[settings.MONGO_DB]
+    db_collection = db["test_quizzes"]
+    yield db_collection
+    client.close()
+
+
 app.dependency_overrides[get_db_session] = override_get_db
 app.dependency_overrides[get_current_user] = override_get_current_user
+app.dependency_overrides[get_mongo_database] = override_get_mongo_database
 
 
 @pytest.fixture(autouse=True, scope="session")
 async def prepare_database():
+    client = AsyncIOMotorClient(settings.MONGO_URL)
+    db = client[settings.MONGO_DB]
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+
+    await db.drop_collection("test_quizzes")
+    client.close()
 
 
 @pytest.fixture
@@ -90,6 +107,7 @@ async def test_company_roles():
         await connection.execute(text('DELETE FROM "company_role";'))
         await connection.commit()
 
+
 @pytest.fixture(scope="session")
 async def test_company_without_member():
     company = Company(
@@ -103,6 +121,7 @@ async def test_company_without_member():
     async with test_engine.begin() as connection:
         await connection.execute(text('DELETE FROM "company";'))
         await connection.commit()
+
 
 @pytest.fixture(scope="session")
 async def test_company_with_member(test_user, test_company_roles):
@@ -126,3 +145,5 @@ async def test_company_with_member(test_user, test_company_roles):
         await connection.execute(text('DELETE FROM "company_member";'))
         await connection.execute(text('DELETE FROM "company";'))
         await connection.commit()
+
+

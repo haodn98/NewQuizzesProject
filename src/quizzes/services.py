@@ -54,7 +54,7 @@ async def create_quizzes_service(user, company_id, quiz_data, db_mongo, db_postg
     Returns:
         The created quiz data after insertion into the database.
     """
-    quiz_data = quiz_data.dict()
+    quiz_data = quiz_data.model_dump()
     quiz_data["company_id"] = company_id
     quiz_data["created_by_user_id"] = user.get("id")
     for index, question in enumerate(quiz_data["questions"]):
@@ -75,21 +75,31 @@ async def update_quizzes_service(quiz_id, quiz_data, db):
     Returns:
         The updated quiz data after insertion into the database.
     """
-    quiz_data = quiz_data.dict()
-    for index, question in enumerate(quiz_data["questions"]):
-        if not question["number"]:
-            question["number"] = index + 1
-    document = await QuizManager.update_quiz(quiz_id=quiz_id, update_data=quiz_data, db=db)
-    return document
-
+    try:
+        quiz_data = quiz_data.model_dump()
+        for index, question in enumerate(quiz_data["questions"]):
+            if not question["number"]:
+                question["number"] = index + 1
+        document = await QuizManager.update_quiz(quiz_id=quiz_id, update_data=quiz_data, db=db)
+        return document
+    except QuizNotFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Quiz not found")
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Invalid quiz id")
 
 async def delete_quizzes_service(quiz_id, db_mongo):
-    deleted_quiz = await QuizManager.delete_quiz(db_mongo, quiz_id)
-    if not deleted_quiz:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
+    try:
+        deleted_quiz = await QuizManager.delete_quiz(db_mongo, quiz_id)
 
-    return {"detail": "Quiz deleted successfully"}
-
+        return {"detail": "Quiz deleted successfully"}
+    except QuizNotFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Quiz not found")
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Invalid quiz id")
 
 async def get_quiz_service(quiz_id, company_id, db):
     """
@@ -109,20 +119,56 @@ async def get_quiz_service(quiz_id, company_id, db):
     try:
         quiz = await QuizManager.get_quiz_no_answers(db, quiz_id)
         if quiz.get("company_id") != company_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Quiz not connected to company")
+        return quiz
+    except QuizNotFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Quiz not found")
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Invalid quiz id")
+
+
+async def get_quiz_answers_service(quiz_id, company_id, db):
+    """
+        Retrieves a specific quiz from the database, including answers.
+
+        Args:
+            quiz_id: The ID of the quiz to be retrieved.
+            company_id: The ID of the company the quiz should be associated with.
+            db: The database object.
+
+        Returns:
+            The quiz data with answers if found and valid for the company.
+
+        Raises:
+            HTTPException: If the quiz is not found (404) or the company doesn't match (403).
+        """
+    try:
+        quiz = await QuizManager.get_quiz(db, quiz_id)
+        if quiz.get("company_id") != company_id:
             raise HTTPException(status_code=403, detail="Quiz not connected to company")
         return quiz
     except QuizNotFound:
         raise HTTPException(status_code=404, detail="Quiz not found")
-
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Invalid quiz id")
 
 async def send_quiz_solution_service(user, company_id, quiz_id, answers_form, db_mongo, db_postgres, redis):
-    quiz = await QuizManager.get_quiz(db=db_mongo, quiz_id=quiz_id)
+    try:
+        quiz = await QuizManager.get_quiz(db=db_mongo, quiz_id=quiz_id)
+    except QuizNotFound:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Invalid quiz id")
     if quiz.get("company_id") != company_id:
         raise HTTPException(status_code=400, detail="Quiz not connected to company")
-
     quiz_questions = quiz["questions"]
     quiz_answers = quiz["correct_answers"]
-    answers_form = answers_form.dict()
+    answers_form = answers_form.model_dump()
     users_answers = answers_form.get("answers")
     results = {"user": user.get("id"),
                "company": company_id,
@@ -158,34 +204,9 @@ async def send_quiz_solution_service(user, company_id, quiz_id, answers_form, db
     db_postgres.add(user_result)
     await db_postgres.commit()
     await db_postgres.refresh(user_result)
-    redis = await get_redis()
     await redis.set(
         f'Company {company_id} {user.get("id")} {quiz_id} {user_result.id}', json.dumps(results), ex=172800)
     return user_result
-
-
-async def get_quiz_answers_service(quiz_id, company_id, db):
-    """
-        Retrieves a specific quiz from the database, including answers.
-
-        Args:
-            quiz_id: The ID of the quiz to be retrieved.
-            company_id: The ID of the company the quiz should be associated with.
-            db: The database object.
-
-        Returns:
-            The quiz data with answers if found and valid for the company.
-
-        Raises:
-            HTTPException: If the quiz is not found (404) or the company doesn't match (403).
-        """
-    try:
-        quiz = await QuizManager.get_quiz(db, quiz_id)
-        if quiz.get("company_id") != company_id:
-            raise HTTPException(status_code=403, detail="Quiz not connected to company")
-        return quiz
-    except QuizNotFound:
-        raise HTTPException(status_code=404, detail="Quiz not found")
 
 
 async def average_mark_service(user, db, max_day, company_id=None):
@@ -206,7 +227,8 @@ async def average_mark_service(user, db, max_day, company_id=None):
             total_questions += quiz_result.questions_overall
         return total_marks / total_questions
     except ZeroDivisionError:
-        return HTTPException(status_code=404, detail="No quiz results for this period of time")
+        raise HTTPException(status_code=404, detail="No quiz results for this period of time or with this company")
+
 
 async def get_user_quiz_result_service(user_id, db):
     results = await db.execute(select(QuizResults).where(QuizResults.user_id == user_id))
@@ -214,9 +236,12 @@ async def get_user_quiz_result_service(user_id, db):
 
 
 async def get_quiz_results_service(quiz_id, db):
-    results = await db.execute(select(QuizResults).where(QuizResults.quiz_id == quiz_id))
-    return results.scalars().all()
-
+    try:
+        results = await db.execute(select(QuizResults).where(QuizResults.quiz_id == quiz_id))
+        return results.scalars().all()
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Quiz not found")
 
 async def get_user_quizzes_json_services(user, db, redis):
     query = select(QuizResults).where(QuizResults.user_id == user.get("id"))

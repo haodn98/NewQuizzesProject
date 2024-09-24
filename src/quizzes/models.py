@@ -9,8 +9,8 @@ class QuizResults(Base):
 
     id = Column(Integer, primary_key=True)
     quiz_id = Column(String)
-    user_id = Column(Integer, ForeignKey('user.id'))
-    company_id = Column(Integer, ForeignKey('company.id'))
+    user_id = Column(Integer, ForeignKey('user.id',ondelete='CASCADE'))
+    company_id = Column(Integer, ForeignKey('company.id',ondelete='CASCADE'))
     result = Column(Float, nullable=False)
     questions_overall = Column(Integer)
     quiz_date = Column(DateTime, nullable=False, default=datetime.utcnow)

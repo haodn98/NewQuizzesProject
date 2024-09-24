@@ -15,30 +15,30 @@ from tests.conftest import ac, async_session_test
 async def test_get_all_users(ac: AsyncClient, test_user):
     await factories.UserFactory.create_batch(10)
 
-    request = await ac.get("/auth/users")
-    assert len(request.json()["items"]) == 11
-    assert request.status_code == 200
+    response = await ac.get("/auth/users")
+    assert len(response.json()["items"]) == 11
+    assert response.status_code == 200
 
 
 @pytest.mark.asyncio
 async def test_get_all_users_paginated(ac: AsyncClient, test_user):
     await factories.UserFactory.create_batch(10)
 
-    request = await ac.get("/auth/users?page=1&size=5")
-    assert len(request.json()["items"]) == 5
-    assert request.status_code == 200
+    response = await ac.get("/auth/users?page=1&size=5")
+    assert len(response.json()["items"]) == 5
+    assert response.status_code == 200
 
 async def test_get_user_by_id(ac: AsyncClient, test_user):
 
-    request = await ac.get(f"/auth/users/{test_user.id}")
-    assert request.status_code == 200
-    assert request.json()["id"] == test_user.id
+    response = await ac.get(f"/auth/users/{test_user.id}")
+    assert response.status_code == 200
+    assert response.json()["id"] == test_user.id
 
 async def test_get_user_by_id_wrong_id(ac: AsyncClient):
 
-    request = await ac.get(f"/auth/users/1000")
-    assert request.status_code == status.HTTP_404_NOT_FOUND
-    assert request.json()["detail"] == "User not found"
+    response = await ac.get(f"/auth/users/1000")
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json()["detail"] == "User not found"
 
 
 

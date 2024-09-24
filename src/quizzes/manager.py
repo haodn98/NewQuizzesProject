@@ -37,11 +37,6 @@ class MongoManager:
             return False
         return True
 
-    # @classmethod
-    # async def update_document(cls, db, query, update, **kwargs):
-    #     document = await db.find_one_and_update(query, update, return_document=pymongo.ReturnDocument.AFTER, **kwargs)
-    #     return cls.id_to_string(document)
-
 
 class QuizManager(MongoManager):
 
@@ -115,26 +110,30 @@ class QuizManager(MongoManager):
 
     @classmethod
     async def update_quiz(cls, db, quiz_id, update_data):
-        document = await db.find_one_and_update(
-            {
-                "_id": ObjectId(quiz_id)
-            },
-            {
-                "$set": update_data
-            },
-            return_document=pymongo.ReturnDocument.AFTER
-        )
-        return cls.id_to_string(document)
-
+        if ObjectId.is_valid(quiz_id):
+            document = await db.find_one_and_update(
+                {
+                    "_id": ObjectId(quiz_id)
+                },
+                {
+                    "$set": update_data
+                },
+                return_document=pymongo.ReturnDocument.AFTER
+            )
+            if not document:
+                raise QuizNotFound
+            return cls.id_to_string(document)
+        raise ValueError("Invalid Quiz id")
 
     @classmethod
-    async def delete_quiz(cls,db, quiz_id):
+    async def delete_quiz(cls, db, quiz_id):
         if ObjectId.is_valid(quiz_id):
             existing_quiz = await db.find_one_and_delete({"_id": ObjectId(quiz_id)})
             if not existing_quiz:
                 raise QuizNotFound("Quiz not found")
             return existing_quiz
-        return ValueError("Invalid Quiz id")
+        raise ValueError("Invalid Quiz id")
+
     #
     #     @classmethod
     #     def delete_quizzes_by_credential(cls, query, **kwargs):
