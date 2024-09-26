@@ -2,7 +2,7 @@ import csv
 import io
 import json
 
-
+from fastapi import HTTPException,status
 from redis.asyncio.client import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,6 +11,9 @@ async def get_quiz_json(query,
                         redis: Redis):
     result = await db.execute(query)
     result = result.scalars().all()
+    if not result:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="No results with this conditions")
     file_content = io.StringIO()
     for quiz in result:
         quiz_json = await redis.get(f'Company {quiz.company_id} {quiz.user_id} {quiz.quiz_id} {quiz.id}')

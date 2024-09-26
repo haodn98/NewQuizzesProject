@@ -3,6 +3,7 @@ import json
 from fastapi import HTTPException, status
 from sqlalchemy import select
 
+from src.companies.models import Company
 from src.core.redis_config import get_redis
 from src.notifications.services import quiz_created_notification_service
 from src.quizzes.manager import QuizManager, QuizNotFound
@@ -249,11 +250,26 @@ async def get_user_quizzes_json_services(user, db, redis):
 
 
 async def get_company_quizzes_results_json_services(company_id, db, redis):
+    company = await db.execute(select(Company).where(Company.id == company_id))
+    company = company.scalar_one_or_none()
+
+    if company is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Company does not exist"
+        )
     query = select(QuizResults).where(QuizResults.company_id == company_id)
     return await get_quiz_json(query=query, db=db, redis=redis)
 
 
 async def get_company_user_quizzes_results_json_services(company_id, user_id, redis, db):
+    company = await db.execute(select(Company).where(Company.id == company_id))
+    company = company.scalar_one_or_none()
+    if company is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Company does not exist"
+        )
     query = select(QuizResults).where(QuizResults.company_id == company_id,
                                       QuizResults.user_id == user_id)
     return await get_quiz_json(query=query, db=db, redis=redis)
@@ -270,11 +286,25 @@ async def get_user_quizzes_csv_services(user, db, redis):
 
 
 async def get_company_quizzes_results_csv_services(company_id, db, redis):
+    company = await db.execute(select(Company).where(Company.id == company_id))
+    company = company.scalar_one_or_none()
+    if company is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Company does not exist"
+        )
     query = select(QuizResults).where(QuizResults.company_id == company_id)
     return await get_quiz_csv(query=query, db=db, redis=redis)
 
 
 async def get_company_user_quizzes_results_csv_services(company_id, user_id, redis, db):
+    company = await db.execute(select(Company).where(Company.id == company_id))
+    company = company.scalar_one_or_none()
+    if company is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Company does not exist"
+        )
     query = select(QuizResults).where(QuizResults.company_id == company_id,
                                       QuizResults.user_id == user_id)
     return await get_quiz_json(query=query, db=db, redis=redis)

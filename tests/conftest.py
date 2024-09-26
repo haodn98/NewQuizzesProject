@@ -36,8 +36,15 @@ async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
-async def override_get_current_user():
-    return {"username": "TestUser1", "id": 1}
+@pytest.fixture
+async def authorized_user():
+    async def override_get_current_user():
+        return {"username": "TestUser1", "id": 1}
+    app.dependency_overrides[get_current_user] = override_get_current_user
+    yield
+
+    app.dependency_overrides = {}
+
 
 
 async def override_get_mongo_database():
@@ -49,7 +56,6 @@ async def override_get_mongo_database():
 
 
 app.dependency_overrides[get_db_session] = override_get_db
-app.dependency_overrides[get_current_user] = override_get_current_user
 app.dependency_overrides[get_mongo_database] = override_get_mongo_database
 
 
@@ -86,7 +92,9 @@ async def test_user():
     async with async_session_test() as db:
         db.add(user)
         await db.commit()
+    app.dependency_overrides[get_current_user] = lambda: {"username":user.username,"id":user.id}
     yield user
+    app.dependency_overrides = {}
     async with test_engine.begin() as connection:
         await connection.execute(text('DELETE FROM "user";'))
         await connection.commit()
@@ -95,9 +103,9 @@ async def test_user():
 @pytest.fixture(scope="session")
 async def test_company_roles():
     roles = [
-        CompanyRole(id=1, name="owner"),
-        CompanyRole(id=2, name="admin"),
-        CompanyRole(id=3, name="member")
+        CompanyRole(name="owner"),
+        CompanyRole(name="admin"),
+        CompanyRole(name="member")
     ]
     async with async_session_test() as db:
         db.add_all(roles)

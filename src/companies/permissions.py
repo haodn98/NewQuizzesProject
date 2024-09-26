@@ -11,7 +11,6 @@ from src.utils.utils_auth import get_current_user
 async def check_company_membership(company_id: int, user: dict, role_names: list, db: AsyncSession):
     company = await db.execute(select(Company).where(Company.id == company_id))
     company = company.scalar_one_or_none()
-
     if company is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

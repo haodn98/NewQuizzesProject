@@ -30,6 +30,7 @@ router = APIRouter(
     tags=["Quizzes"],
 )
 
+
 # tested
 @router.get("/average_mark")
 @cache(expire=30)
@@ -44,6 +45,7 @@ async def average_mark(company_id: Optional[int] = None,
         }
     except ZeroDivisionError:
         raise HTTPException(status_code=404, detail="No quiz results for this period of time")
+
 
 # tested
 @router.get("/user_results/{user_id}")
@@ -88,30 +90,14 @@ async def get_company_user_quizzes_json(company_id: int,
                                                                         redis=redis,
                                                                         db=db)
     return StreamingResponse(io.BytesIO(file_content.encode('utf-8')), media_type="application/json",
-                             headers={"Content-Disposition": "attachment; filename=company_quizzes_results.json"})
-
-
-@router.get("/admin/{company_id}/{user_id}/user_quizzes_json")
-async def get_company_user_quizzes_json(company_id: int,
-                                        user_id: int,
-                                        company_user: bool = Depends(is_company_member),
-                                        company: bool = Depends(is_company_admin),
-                                        user: dict = Depends(get_current_user),
-                                        db: AsyncIOMotorDatabase = Depends(get_db_session),
-                                        redis: Redis = Depends(get_redis)):
-    file_content = await get_company_user_quizzes_results_json_services(company_id=company_id,
-                                                                        user_id=user_id,
-                                                                        redis=redis,
-                                                                        db=db)
-    return StreamingResponse(io.BytesIO(file_content.encode('utf-8')), media_type="application/json",
                              headers={"Content-Disposition": "attachment; filename=company_user_quizzes_results.json"})
 
 
 @router.get("/admin/{company_id}/{quiz_id}/quiz_results_json")
 async def get_quiz_results_json(company_id: int,
-                                quiz_id: int,
-                                quiz: bool = Depends(is_company_quiz),
+                                quiz_id: str,
                                 company: bool = Depends(is_company_admin),
+                                quiz: bool = Depends(is_company_quiz),
                                 user: dict = Depends(get_current_user),
                                 db: AsyncIOMotorDatabase = Depends(get_db_session),
                                 redis: Redis = Depends(get_redis)):
@@ -160,9 +146,9 @@ async def get_company_user_quizzes_csv(company_id: int,
 
 @router.get("/admin/{company_id}/{quiz_id}/quiz_results_csv")
 async def get_quiz_results_csv(company_id: int,
-                               quiz_id: int,
-                               quiz: bool = Depends(is_company_quiz),
+                               quiz_id: str,
                                company: bool = Depends(is_company_admin),
+                               quiz: bool = Depends(is_company_quiz),
                                user: dict = Depends(get_current_user),
                                db: AsyncIOMotorDatabase = Depends(get_db_session),
                                redis: Redis = Depends(get_redis)):
@@ -173,7 +159,7 @@ async def get_quiz_results_csv(company_id: int,
                              headers={"Content-Disposition": "attachment; filename=company_quiz_results.csv"})
 
 
-#tested
+# tested
 @router.get("/")
 @cache(expire=30)
 async def get_all_quizzes(page: Optional[int] = 1, per_page: Optional[int] = 10,
@@ -274,7 +260,8 @@ async def get_quiz(quiz_id: str,
         """
     return await get_quiz_service(quiz_id=quiz_id, company_id=company_id, db=db)
 
-#tested
+
+# tested
 @router.delete("/{company_id}/{quiz_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_quiz(
         company_id: int,
@@ -286,7 +273,8 @@ async def delete_quiz(
         db_postgres: AsyncSession = Depends(get_db_session)):
     return await delete_quizzes_service(quiz_id=quiz_id, db_mongo=db_mongo)
 
-#tested
+
+# tested
 @router.get("/{company_id}/{quiz_id}/results")
 @cache(expire=30)
 async def get_quiz_results(company_id: int,
@@ -296,7 +284,8 @@ async def get_quiz_results(company_id: int,
                            db: AsyncSession = Depends(get_db_session)):
     return await get_quiz_results_service(quiz_id=quiz_id, db=db)
 
-#tested
+
+# tested
 @router.get("/{company_id}/{quiz_id}/answers")
 @cache(expire=30)
 async def get_quiz_with_answers(quiz_id: str,
@@ -319,8 +308,9 @@ async def get_quiz_with_answers(quiz_id: str,
         """
     return await get_quiz_answers_service(quiz_id=quiz_id, company_id=company_id, db=db)
 
+
 # tested
-@router.post("/{company_id}/{quiz_id}/solution",status_code=status.HTTP_201_CREATED)
+@router.post("/{company_id}/{quiz_id}/solution", status_code=status.HTTP_201_CREATED)
 async def send_quiz_solution(quiz_id: str,
                              company_id: int,
                              answers_form: AnswerForm,

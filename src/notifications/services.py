@@ -1,4 +1,6 @@
+from fastapi import HTTPException, status
 from sqlalchemy import select
+
 from src.companies.models import CompanyMember, Company
 from src.notifications.models import Notification
 from src.notifications.schemas import NotificationSchema
@@ -14,6 +16,9 @@ async def user_make_notification_read_service(notification_id, user, db):
     notification = await db.execute(select(Notification).where(Notification.user_id == user.get("id"),
                                                                Notification.id == notification_id))
     notification = notification.scalar_one_or_none()
+    if notification is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Notification not found ")
     notification.is_read = True
     db.add(notification)
     await db.commit()
@@ -21,10 +26,10 @@ async def user_make_notification_read_service(notification_id, user, db):
 
 
 async def create_notifications_service(notification_data, db):
-    notification = Notification(user_id=notification_data["user_id"],
-                                company_id=notification_data["company_id"],
-                                title=notification_data["title"],
-                                content=notification_data["content"],
+    notification = Notification(user_id=notification_data.user_id,
+                                company_id=notification_data.company_id,
+                                title=notification_data.title,
+                                content=notification_data.content,
                                 is_read=False)
     db.add(notification)
     await db.commit()

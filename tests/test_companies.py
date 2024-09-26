@@ -10,7 +10,7 @@ from src.utils.utils_auth import bcrypt_context
 from tests.conftest import ac, async_session_test, test_engine, test_company_roles
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 async def test_user_for_company_test():
     user = User(
         email="Test2@testt.com",
@@ -28,7 +28,7 @@ async def test_user_for_company_test():
         await connection.commit()
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 async def test_company_member_for_company_test(test_user, test_company_roles, test_user_for_company_test,
                                                test_company_with_member):
     company_member = CompanyMember(
@@ -45,7 +45,7 @@ async def test_company_member_for_company_test(test_user, test_company_roles, te
         await connection.commit()
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 async def test_company_for_company_test():
     company = Company(
         name="test company for company test",
@@ -60,7 +60,7 @@ async def test_company_for_company_test():
         await connection.commit()
 
 
-@pytest.fixture()
+@pytest.fixture(scope="function")
 async def test_application(test_user_for_company_test, test_company_with_member):
     application = Application(
         sender_user_id=test_user_for_company_test.id,
@@ -76,8 +76,8 @@ async def test_application(test_user_for_company_test, test_company_with_member)
         await connection.commit()
 
 
-@pytest.fixture()
-async def test_invitation(test_user, test_user_for_company_test,test_company_without_member):
+@pytest.fixture(scope="function")
+async def test_invitation(test_user, test_user_for_company_test, test_company_without_member):
     invitation = Invitation(
         sender_user_id=test_user_for_company_test.id,
         receiver_user_id=test_user.id,
@@ -330,108 +330,118 @@ async def test_delete_invitation_letter(ac: AsyncClient,
 
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
+
 async def test_delete_invitation_letter_wrong_id(ac: AsyncClient,
                                                  test_user,
                                                  test_company_with_member):
-
     response = await ac.delete(f"/companies/company_invitation/1000")
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json()["detail"] == "Invitation does not exist"
 
+
 async def test_invitation_answer_accepted(ac: AsyncClient,
-                                        test_user,
-                                        test_company_without_member,
-                                        test_invitation
-                                        ):
+                                          test_user,
+                                          test_company_without_member,
+                                          test_invitation
+                                          ):
     invitation_form = {
-        "answer":"accepted"
+        "answer": "accepted"
     }
     response = await ac.post(f"/companies/company_invite/answer/{test_invitation.id}",
                              json=invitation_form)
     async with async_session_test() as db:
-        invitation = await db.execute( select(Invitation).where(Invitation.id == test_invitation.id))
+        invitation = await db.execute(select(Invitation).where(Invitation.id == test_invitation.id))
         invitation = invitation.scalar_one_or_none()
-        company_member = await db.execute(select(CompanyMember).where(CompanyMember.user_id == invitation.receiver_user_id,
-                                                                      CompanyMember.company_id == invitation.company_id))
+        company_member = await db.execute(
+            select(CompanyMember).where(CompanyMember.user_id == invitation.receiver_user_id,
+                                        CompanyMember.company_id == invitation.company_id))
         company_member = company_member.scalar_one_or_none()
         await db.delete(company_member)
         await db.commit()
     assert response.status_code == status.HTTP_200_OK
     assert invitation.status == InvitationStatusEnum.ACCEPTED.value
 
+
 async def test_invitation_answer_rejected(ac: AsyncClient,
-                                        test_user,
-                                        test_company_without_member,
-                                        test_invitation
-                                        ):
+                                          test_user,
+                                          test_company_without_member,
+                                          test_invitation
+                                          ):
     invitation_form = {
-        "answer":"rejected"
+        "answer": "rejected"
     }
     response = await ac.post(f"/companies/company_invite/answer/{test_invitation.id}",
                              json=invitation_form)
     async with async_session_test() as db:
-        invitation = await db.execute( select(Invitation).where(Invitation.id == test_invitation.id))
+        invitation = await db.execute(select(Invitation).where(Invitation.id == test_invitation.id))
         invitation = invitation.scalar_one_or_none()
     assert response.status_code == status.HTTP_200_OK
     assert invitation.status == InvitationStatusEnum.REJECTED.value
 
+
 async def test_invitation_answer_rejected_403(ac: AsyncClient,
-                                        test_invitation
-                                        ):
+                                              test_invitation
+                                              ):
     invitation_form = {
-        "answer":"rejected"
+        "answer": "rejected"
     }
     response = await ac.post(f"/companies/company_invite/answer/{test_invitation.id}",
                              json=invitation_form)
     async with async_session_test() as db:
-        invitation = await db.execute( select(Invitation).where(Invitation.id == test_invitation.id))
+        invitation = await db.execute(select(Invitation).where(Invitation.id == test_invitation.id))
         invitation = invitation.scalar_one_or_none()
     assert response.status_code == status.HTTP_200_OK
     assert invitation.status == InvitationStatusEnum.REJECTED.value
     assert response.json()["detail"] == 'Invitation was rejected.'
 
+
 async def test_invitation_answer_wrong_id(ac: AsyncClient,
-                                        test_user,
-                                        test_company_without_member,
-                                        test_invitation
-                                        ):
+                                          test_user,
+                                          test_company_without_member,
+                                          test_invitation
+                                          ):
     invitation_form = {
-        "answer":"accepted"
+        "answer": "accepted"
     }
     response = await ac.post(f"/companies/company_invite/answer/1000",
                              json=invitation_form)
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
+
 async def test_application_answer_accepted(ac: AsyncClient,
-                                        test_user,
-                                        test_company_with_member,
-                                        test_application
-                                        ):
+                                           test_user,
+                                           test_company_with_member,
+                                           test_application,
+                                           test_company_roles
+                                           ):
     application_form = {
-        "answer":"accepted"
+        "answer": "accepted"
     }
     response = await ac.post(f"/companies/company_application/answer/{test_application.id}",
                              json=application_form)
     async with async_session_test() as db:
-        application = await db.execute( select(Application).where(Application.id == test_application.id))
+        application = await db.execute(select(Application).where(Application.id == test_application.id))
         application = application.scalar_one_or_none()
-        company_member = await db.execute(select(CompanyMember).where(CompanyMember.user_id == application.sender_user_id,
-                                                                      CompanyMember.company_id == application.company_id))
+        company_member = await db.execute(
+            select(CompanyMember).where(CompanyMember.user_id == application.sender_user_id,
+                                        CompanyMember.company_id == application.company_id))
         company_member = company_member.scalar_one_or_none()
         await db.delete(company_member)
         await db.commit()
     assert response.status_code == status.HTTP_200_OK
     assert application.status == InvitationStatusEnum.ACCEPTED.value
 
+
 async def test_application_answer_rejected(ac: AsyncClient,
-                                        test_user,
-                                        test_company_without_member,
-                                        test_application
-                                        ):
+                                           test_user,
+                                           test_company_without_member,
+                                           test_application,
+                                           test_company_roles
+                                           ):
     application_form = {
-        "answer":"rejected"
+        "answer": "rejected"
     }
     response = await ac.post(f"/companies/company_application/answer/{test_application.id}",
                              json=application_form)
@@ -441,25 +451,27 @@ async def test_application_answer_rejected(ac: AsyncClient,
     assert response.status_code == status.HTTP_200_OK
     assert application.status == InvitationStatusEnum.REJECTED.value
 
+
 async def test_application_answer_wrong_id(ac: AsyncClient,
-                                        test_user
-                                        ):
+                                           test_user
+                                           ):
     application_form = {
-        "answer":"rejected"
+        "answer": "rejected"
     }
     response = await ac.post(f"/companies/company_application/answer/1000",
                              json=application_form)
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
+
 async def test_user_stop_membership(ac: AsyncClient,
                                     test_user_for_company_test,
                                     test_company_with_member,
                                     test_company_roles):
     company_member = CompanyMember(
-        user_id = test_user_for_company_test.id,
-        company_id = test_company_with_member.id,
-        role = next(role.id for role in test_company_roles if role.name == "member")
+        user_id=test_user_for_company_test.id,
+        company_id=test_company_with_member.id,
+        role=next(role.id for role in test_company_roles if role.name == "member")
     )
     async with async_session_test() as db:
         db.add(company_member)
@@ -470,8 +482,9 @@ async def test_user_stop_membership(ac: AsyncClient,
 
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
+
 async def test_user_stop_membership_wrong_company_id(ac: AsyncClient,
-                                    test_user_for_company_test):
+                                                     test_user_for_company_test):
     response = await ac.delete(
         f"/companies/1000/membership_stop/{test_user_for_company_test.id}"
     )
@@ -479,9 +492,10 @@ async def test_user_stop_membership_wrong_company_id(ac: AsyncClient,
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.json()["detail"] == "Company does not exist"
 
+
 async def test_user_stop_membership_wrong_user_id(ac: AsyncClient,
-                                                     test_company_with_member,
-                                                     test_company_roles):
+                                                  test_company_with_member,
+                                                  test_company_roles):
     response = await ac.delete(
         f"/companies/{test_company_with_member.id}/membership_stop/1000"
     )
@@ -489,7 +503,8 @@ async def test_user_stop_membership_wrong_user_id(ac: AsyncClient,
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.json()["detail"] == "User does not exist"
 
-async def test_get_company_admin_list(ac: AsyncClient,test_user,test_company_with_member):
+
+async def test_get_company_admin_list(ac: AsyncClient, test_user, test_company_with_member):
     response = await ac.get(f"/companies/admin_user/{test_company_with_member.id}")
     assert response.status_code == status.HTTP_200_OK
     assert response.json()[0]["user_id"] == test_user.id
@@ -499,49 +514,36 @@ async def test_get_company_admin_list_wrong_id(ac: AsyncClient):
     response = await ac.get(f"/companies/admin_user/1000")
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
+
 async def test_create_admin_user(ac: AsyncClient,
-                                     test_user,
-                                     test_company_with_member,
-                                     test_user_for_company_test,
-                                     test_company_roles,
-                                     test_company_member_for_company_test):
-    admin_user_form={
-        "user_id":test_user_for_company_test.id,
+                                 test_user,
+                                 test_company_with_member,
+                                 test_user_for_company_test,
+                                 test_company_roles,
+                                 test_company_member_for_company_test):
+    admin_user_form = {
+        "user_id": test_user_for_company_test.id,
     }
     response = await ac.post(f"/companies/admin_user/{test_company_with_member.id}",
                              json=admin_user_form)
 
     assert response.status_code == status.HTTP_200_OK
 
-# async def test_delete_admin_user(ac: AsyncClient,
-#                                      test_user,
-#                                      test_company_with_member,
-#                                      test_user_for_company_test,
-#                                      test_company_roles,
-#                                      test_company_member_for_company_test):
-#     admin_user_form={
-#         "user_id":test_user_for_company_test.id,
-#     }
-#     response = await ac.delete(f"/companies/admin_user/{test_company_with_member.id}",params=admin_user_form)
-#
-#     assert response.status_code == status.HTTP_204_NO_CONTENT
 
-
-
-async def test_create_admin_user_wrong_id(ac: AsyncClient,test_user):
-    admin_user_form={
-        "user_id":test_user.id,
+async def test_create_admin_user_wrong_id(ac: AsyncClient, test_user):
+    admin_user_form = {
+        "user_id": test_user.id,
     }
     response = await ac.post(f"/companies/admin_user/1000",
                              json=admin_user_form)
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
-async def test_create_admin_user_wrong_user_id(ac: AsyncClient,test_company_with_member):
-    admin_user_form={
-        "user_id":1000,
+
+async def test_create_admin_user_wrong_user_id(ac: AsyncClient, test_company_with_member):
+    admin_user_form = {
+        "user_id": 1000,
     }
     response = await ac.post(f"/companies/admin_user/{test_company_with_member.id}",
                              json=admin_user_form)
-    assert response.status_code == status.HTTP_403_FORBIDDEN
 
-
+    assert response.status_code == status.HTTP_404_NOT_FOUND
