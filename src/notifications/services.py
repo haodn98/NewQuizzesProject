@@ -1,9 +1,9 @@
 from fastapi import HTTPException, status
 from sqlalchemy import select
 
-from src.companies.models import CompanyMember, Company
-from src.notifications.models import Notification
-from src.notifications.schemas import NotificationSchema
+from companies.models import CompanyMember, Company
+from notifications.models import Notification
+from notifications.schemas import NotificationSchema
 
 
 async def get_users_notifications_service(user, db):

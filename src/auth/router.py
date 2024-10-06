@@ -5,25 +5,23 @@ from fastapi import (APIRouter,
                      HTTPException,
                      status, )
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi_cache.decorator import cache
 from fastapi_pagination.links import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import JSONResponse
-
-from src.auth.models import User
-from src.auth.schemas import (UserCreate,
+from auth.models import User
+from auth.schemas import (UserCreate,
                               UserUpdateRequestModel,
                               UserPasswordUpdateRequestModel, Token, UserRead, )
-from src.auth.services import (
+from auth.services import (
     create_user_service,
     delete_user_service,
     get_user_by_id_service,
     update_user_service,
     user_update_password_service, )
-from src.utils.utils_auth import authenticate_user, create_access_token, get_current_user
-from src.database.database import get_db_session
+from utils.utils_auth import authenticate_user, create_access_token, get_current_user
+from database.database import get_db_session
 
 router = APIRouter(
     prefix="/auth",

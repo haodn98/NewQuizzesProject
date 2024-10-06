@@ -1,8 +1,8 @@
 import factory
 
 from async_factory_boy.factory.sqlalchemy import AsyncSQLAlchemyFactory
-from src.auth.models import User
-from src.utils.utils_auth import bcrypt_context
+from models import User
+from utils.utils_auth import bcrypt_context
 from tests.conftest import async_session_test
 
 

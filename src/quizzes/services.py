@@ -3,12 +3,11 @@ import json
 from fastapi import HTTPException, status
 from sqlalchemy import select
 
-from src.companies.models import Company
-from src.core.redis_config import get_redis
-from src.notifications.services import quiz_created_notification_service
-from src.quizzes.manager import QuizManager, QuizNotFound
-from src.quizzes.models import QuizResults
-from src.utils.utils_quizzes import get_quiz_json, get_quiz_csv
+from companies.models import Company
+from notifications.services import quiz_created_notification_service
+from quizzes.manager import QuizManager, QuizNotFound
+from quizzes.models import QuizResults
+from utils.utils_quizzes import get_quiz_json, get_quiz_csv
 
 
 async def get_all_quizzes_service(page, per_page, db):

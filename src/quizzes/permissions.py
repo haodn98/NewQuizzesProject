@@ -1,8 +1,8 @@
 from fastapi import Depends, status, HTTPException
 from motor.motor_asyncio import AsyncIOMotorCollection
 
-from src.core.mongo_config import get_mongo_database
-from src.quizzes.manager import QuizManager, QuizNotFound
+from core.mongo_config import get_mongo_database
+from quizzes.manager import QuizManager, QuizNotFound
 
 
 async def is_company_quiz(company_id, quiz_id, db: AsyncIOMotorCollection = Depends(get_mongo_database)):

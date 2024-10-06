@@ -1,12 +1,9 @@
-from typing import List, Dict
+from typing import Dict
 
 import pymongo
 from bson import ObjectId
-from datetime import datetime
-
 from motor.motor_asyncio import AsyncIOMotorCollection
-from pydantic import BaseModel, Field, conint
-from pymongo.errors import PyMongoError
+
 
 
 class QuizNotFound(Exception):

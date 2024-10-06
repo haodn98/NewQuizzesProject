@@ -1,8 +1,9 @@
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import text
+from sqlalchemy import text, select
 from starlette import status
 
+from src.companies.models import CompanyRole
 from src.notifications.models import Notification
 from tests.conftest import async_session_test, test_engine
 

@@ -3,12 +3,12 @@ from fastapi.params import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from src.companies.permissions import is_company_admin
-from src.database.database import get_db_session
-from src.notifications.schemas import NotificationSchema
-from src.notifications.services import get_users_notifications_service, user_make_notification_read_service, \
+from companies.permissions import is_company_admin
+from database.database import get_db_session
+from notifications.schemas import NotificationSchema
+from notifications.services import get_users_notifications_service, user_make_notification_read_service, \
     create_notifications_service
-from src.utils.utils_auth import get_current_user
+from utils.utils_auth import get_current_user
 
 router = APIRouter(
     prefix="/notifications",

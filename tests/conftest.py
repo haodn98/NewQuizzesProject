@@ -18,6 +18,7 @@ from src.core.mongo_config import get_mongo_database
 from src.database.base import Base
 from src.database.database import get_db_session
 from src.main import app, lifespan
+from src.notifications.models import Notification
 from src.quizzes.manager import QuizManager
 from src.utils.utils_auth import bcrypt_context, get_current_user
 
@@ -34,17 +35,6 @@ Base.metadata.bind = test_engine
 async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_test() as session:
         yield session
-
-
-@pytest.fixture
-async def authorized_user():
-    async def override_get_current_user():
-        return {"username": "TestUser1", "id": 1}
-    app.dependency_overrides[get_current_user] = override_get_current_user
-    yield
-
-    app.dependency_overrides = {}
-
 
 
 async def override_get_mongo_database():
@@ -153,5 +143,4 @@ async def test_company_with_member(test_user, test_company_roles):
         await connection.execute(text('DELETE FROM "company_member";'))
         await connection.execute(text('DELETE FROM "company";'))
         await connection.commit()
-
 

@@ -4,24 +4,24 @@ from fastapi import APIRouter, Depends
 from fastapi_cache.decorator import cache
 from fastapi_pagination.ext.sqlalchemy import paginate
 from fastapi_pagination.links import Page
-from sqlalchemy import select, Boolean
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from src.companies.models import Invitation, Company, Application
-from src.companies.permissions import (is_company_admin,
+from companies.models import Company
+from companies.permissions import (is_company_admin,
                                        is_invitation_sender,
                                        is_invitation_receiver,
                                        is_application_receiver,
                                        is_company_owner)
-from src.companies.schemas import (CompanyCreateUpdateSchema,
+from companies.schemas import (CompanyCreateUpdateSchema,
                                    CompanyRead,
                                    InviteLetterSchema,
                                    ApplicationLetterSchema,
                                    InviteApplicationAnswerSchema,
                                    CompanyMemberDeleteSchema,
                                    CreateDeleteCompanyAdminSchema)
-from src.companies.services import (create_company_service,
+from companies.services import (create_company_service,
                                     update_company_service,
                                     delete_company_service,
                                     get_company_by_id_service,
@@ -42,8 +42,8 @@ from src.companies.services import (create_company_service,
                                     create_company_admin_user_service,
                                     delete_company_admin_user_service,
                                     get_company_admin_user_service)
-from src.database.database import get_db_session
-from src.utils.utils_auth import get_current_user
+from database.database import get_db_session
+from utils.utils_auth import get_current_user
 
 router = APIRouter(
     prefix="/companies",

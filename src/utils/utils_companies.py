@@ -1,7 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy import select
 
-from src.companies.models import CompanyRole, CompanyMember
+from companies.models import CompanyRole, CompanyMember
 
 COMPANY_ROLE_CACHE = {}
 

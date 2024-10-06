@@ -1,6 +1,6 @@
 import redis.asyncio as aioredis
 
-from src.core.config import settings
+from core.config import settings
 
 REDIS_URL = settings.REDIS_URL
 # redis setup

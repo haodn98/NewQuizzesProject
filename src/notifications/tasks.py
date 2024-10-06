@@ -4,14 +4,14 @@ from datetime import timedelta, datetime
 from celery import shared_task
 from fastapi.params import Depends
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
+
 from motor.motor_asyncio import AsyncIOMotorCollection
 
-from src.core.mongo_config import get_mongo_database
-from src.database.database import get_db_session,async_session
-from src.notifications.services import create_notifications_service
-from src.quizzes.manager import QuizManager
-from src.quizzes.models import QuizResults
+from core.mongo_config import get_mongo_database
+from database.database import async_session
+from notifications.services import create_notifications_service
+from quizzes.manager import QuizManager
+from quizzes.models import QuizResults
 
 @shared_task(name = "quiz_remind_notification")
 def quiz_remind_notification_sync():

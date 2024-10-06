@@ -1,3 +1,5 @@
+import os
+
 from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
 
@@ -25,11 +27,6 @@ class Settings(BaseSettings):
 
     PGADMIN_DEFAULT_EMAIL: str
     PGADMIN_DEFAULT_PASSWORD: str
-
-    EMAIL_HOST: str
-    EMAIL_PORT: int = 587
-    EMAIL_USER: str
-    EMAIL_PASSWORD: str
 
     REDIS_URL: str
 
@@ -59,6 +56,9 @@ class Settings(BaseSettings):
 
     CELERY_TIMEZONE: str = 'UTC'
 
-    model_config = ConfigDict(env_file=".env")
+    model_config = ConfigDict(
+        env_file=".env-non-dev" if os.getenv("DOCKER_ENV") else ".env",
+        extra="ignore"
+    )
 
 settings = Settings()

@@ -1,11 +1,10 @@
 import pytest
 from fastapi import status
-from fastapi_pagination import response
 from httpx import AsyncClient
 from sqlalchemy import text, select
 
 from src.auth.models import User
-from src.companies.models import Application, InvitationStatusEnum, Invitation, Company, CompanyMember
+from src.companies.models import Application, InvitationStatusEnum, Invitation, Company, CompanyMember, CompanyRole
 from src.utils.utils_auth import bcrypt_context
 from tests.conftest import ac, async_session_test, test_engine, test_company_roles
 
@@ -143,6 +142,7 @@ async def test_update_company_wrong_id(ac: AsyncClient):
     response = await ac.put('/companies/details/1000', json=company_data)
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
 
 
 async def test_delete_company(ac: AsyncClient, test_user, test_company_roles):

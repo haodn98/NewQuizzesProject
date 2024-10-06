@@ -3,14 +3,14 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from starlette import status
 
-from src.auth.models import User
-from src.companies.models import (Company,
+from auth.models import User
+from companies.models import (Company,
                                   CompanyMember,
                                   Invitation,
                                   CompanyRole,
                                   InvitationStatusEnum,
                                   Application)
-from src.utils.utils_companies import get_company_role, is_company_member
+from utils.utils_companies import get_company_role, is_company_member
 
 
 async def get_company_by_id_service(company_id, db):

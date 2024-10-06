@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 
-from src.database.base import Base
+from database.base import Base
 
 class InvitationStatusEnum(Enum):
     ACCEPTED = "accepted"

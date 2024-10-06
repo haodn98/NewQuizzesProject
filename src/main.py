@@ -1,4 +1,3 @@
-import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -8,14 +7,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
 from fastapi_pagination import add_pagination
-from starlette.staticfiles import StaticFiles
 
-from src.auth.router import router as auth_router
-from src.companies.router import router as companies_router
-from src.core.config import settings
-from src.core.redis_config import init_redis_pool, close_redis_pool
-from src.quizzes.router import router as quizzes_router
-from src.notifications.routers import router as notifications_router
+from auth.router import router as auth_router
+from companies.router import router as companies_router
+from core.config import settings
+from core.redis_config import init_redis_pool, close_redis_pool
+from quizzes.router import router as quizzes_router
+from notifications.routers import router as notifications_router
 
 
 @asynccontextmanager
@@ -44,7 +42,6 @@ app.include_router(quizzes_router)
 app.include_router(notifications_router)
 
 add_pagination(app)
-
 
 @app.get("/healthy")
 async def health_check():

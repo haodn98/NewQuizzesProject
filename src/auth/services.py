@@ -4,10 +4,9 @@ from fastapi.params import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.models import User
-from src.auth.schemas import UserRead
-from src.database.database import get_db_session
-from src.utils.utils_auth import bcrypt_context, Validation
+from auth.models import User
+from database.database import get_db_session
+from utils.utils_auth import bcrypt_context, Validation
 
 logger = logging.getLogger(__name__)
 

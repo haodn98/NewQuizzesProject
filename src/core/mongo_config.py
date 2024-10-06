@@ -1,6 +1,6 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from src.core.config import settings
+from core.config import settings
 
 
 async def get_mongo_database():

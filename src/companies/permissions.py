@@ -1,11 +1,10 @@
-from dns.e164 import query
 from fastapi import Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.companies.models import (CompanyMember, Invitation, Application, CompanyRole, Company)
-from src.database.database import get_db_session
-from src.utils.utils_auth import get_current_user
+from companies.models import (CompanyMember, Invitation, Application, CompanyRole, Company)
+from database.database import get_db_session
+from utils.utils_auth import get_current_user
 
 
 async def check_company_membership(company_id: int, user: dict, role_names: list, db: AsyncSession):
