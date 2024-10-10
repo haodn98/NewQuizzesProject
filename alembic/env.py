@@ -4,7 +4,6 @@ from alembic import context
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
-from database.database import validate_database
 from src.core.config import settings
 from src.database.base import Base
 from src.auth.models import *
@@ -16,8 +15,6 @@ from src.notifications.models import *
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-
-validate_database()
 
 section = config.config_ini_section
 config.set_section_option(section, "DB_HOST", settings.DB_HOST)

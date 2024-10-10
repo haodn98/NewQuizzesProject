@@ -85,7 +85,6 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['company_id'], ['company.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['receiver_user_id'], ['user.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['sender_user_id'], ['user.id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['status'], ['invitation_status.id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['type'], ['invitation_type.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )

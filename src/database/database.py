@@ -18,7 +18,3 @@ async def get_db_session() -> AsyncSession:
         yield session
 
 
-
-async def validate_database():
-    if not database_exists(engine.url):
-        create_database(engine.url)

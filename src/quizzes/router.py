@@ -124,7 +124,9 @@ async def get_quiz_results_json(company_id: int,
 async def get_user_quizzes_csv(user: dict = Depends(get_current_user),
                                db: AsyncSession = Depends(get_db_session),
                                redis: Redis = Depends(get_redis)):
-    file_content = await get_user_quizzes_csv_services(user=user, db=db, redis=redis)
+    file_content = await get_user_quizzes_csv_services(user=user,
+                                                       db=db,
+                                                       redis=redis)
     return StreamingResponse(io.BytesIO(file_content.encode('utf-8')), media_type="application/csv",
                              headers={"Content-Disposition": "attachment; filename=user_quizzes.csv"})
 
@@ -135,7 +137,9 @@ async def get_company_quizzes_csv(company_id: int,
                                   user: dict = Depends(get_current_user),
                                   db: AsyncIOMotorDatabase = Depends(get_db_session),
                                   redis: Redis = Depends(get_redis)):
-    file_content = await get_company_quizzes_results_csv_services(company_id=company_id, db=db, redis=redis)
+    file_content = await get_company_quizzes_results_csv_services(company_id=company_id,
+                                                                  db=db,
+                                                                  redis=redis)
     return StreamingResponse(io.BytesIO(file_content.encode('utf-8')), media_type="application/csv",
                              headers={"Content-Disposition": "attachment; filename=company_quizzes_results.csv"})
 
@@ -187,7 +191,9 @@ async def get_all_quizzes(page: Optional[int] = 1, per_page: Optional[int] = 10,
     Returns:
         A list of all available quizzes.
         """
-    return await get_all_quizzes_service(page=page, per_page=per_page, db=db)
+    return await get_all_quizzes_service(page=page,
+                                         per_page=per_page,
+                                         db=db)
 
 
 # tested
