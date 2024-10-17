@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy import Column, Integer, ForeignKey, Float, DateTime, String
 
-from database.base import Base
+from src.database.base import Base
 
 
 class QuizResults(Base):

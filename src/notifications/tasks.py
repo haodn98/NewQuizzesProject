@@ -1,23 +1,23 @@
 import asyncio
+import logging
 from datetime import timedelta, datetime
 
 from celery import shared_task
 from fastapi.params import Depends
 from sqlalchemy import func, select
-
 from motor.motor_asyncio import AsyncIOMotorCollection
 
-from core.mongo_config import get_mongo_database
-from database.database import async_session
-from notifications.services import create_notifications_service
-from quizzes.manager import QuizManager
-from quizzes.models import QuizResults
+from src.core.mongo_config import get_mongo_database
+from src.database.database import async_session
+from src.notifications.services import create_notifications_service
+from src.quizzes.manager import QuizManager
+from src.quizzes.models import QuizResults
 
-@shared_task(name = "quiz_remind_notification")
-def quiz_remind_notification_sync():
-    asyncio.run(quiz_remind_notification_async())
+logger = logging.getLogger(__name__)
 
-async def quiz_remind_notification_async(db_mongo: AsyncIOMotorCollection = Depends(get_mongo_database)):
+
+@shared_task
+async def quiz_remind_notification(db_mongo: AsyncIOMotorCollection = Depends(get_mongo_database)):
     with async_session() as session:
         query = select(
             QuizResults.user_id,
@@ -37,9 +37,8 @@ async def quiz_remind_notification_async(db_mongo: AsyncIOMotorCollection = Depe
         quiz_results = quiz_results.scalars().all()
         quizzes_ids = set(quiz.quiz_id for quiz in quiz_results)
 
-        print("Here mongo")
         quizzes_data = await QuizManager.quiz_filter(db=db_mongo, query={"_id": {"$in": list(quizzes_ids)}},
-                                                     projection={"_id": 1, "frequency": 1, "name":1})
+                                                     projection={"_id": 1, "frequency": 1, "name": 1})
         quizzes_data = {quiz["_id"]: quiz for quiz in quizzes_data}
 
         for quiz in quiz_results:
@@ -47,20 +46,17 @@ async def quiz_remind_notification_async(db_mongo: AsyncIOMotorCollection = Depe
             quiz_id = quiz.quiz_id
             company_id = quiz.company_id
             last_attempt_date = quiz.last_attempt_date
-
             quiz_info = quizzes_data.get(quiz_id)
-            print("Here quizzes")
             if quiz_info:
                 frequency = quiz_info.get('frequency')
                 if frequency:
 
                     next_allowed_date = last_attempt_date + timedelta(days=frequency)
                     if next_allowed_date <= datetime.utcnow():
-                        notification ={
-                                "title": f"Time to repeat the quiz ",
-                                "content": f'You took "{quiz["name"]}" so long time ago! Time to repeat',
-                                "company_id": company_id,
-                                "user_id": user_id,
+                        notification = {
+                            "title": f"Time to repeat the quiz ",
+                            "content": f'You took "{quiz["name"]}" so long time ago! Time to repeat',
+                            "company_id": company_id,
+                            "user_id": user_id,
                         }
-                        await create_notifications_service(db=db_postgres,notification_data=notification)
-                        print("Notification created successfully")
+                        await create_notifications_service(db=session, notification_data=notification)

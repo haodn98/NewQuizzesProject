@@ -37,23 +37,6 @@ class Settings(BaseSettings):
     CELERY_BROKER_URL: str
     CELERY_RESULT_BACKEND: str
 
-    CELERY_TASK_ROUTES: dict= {
-        'tasks.*': {
-            'queue': 'high_priority',
-        },
-        'low_priority_tasks.*': {
-            'queue': 'low_priority',
-        },
-    }
-
-    CELERY_BEAT_SCHEDULE: dict = {
-        "send_quiz_remind_notifications": {
-            "task": "quiz_remind_notification",
-            "schedule": 10,
-            'options': {'queue' : 'periodic'},
-        },
-    }
-
     CELERY_TIMEZONE: str = 'UTC'
 
     model_config = ConfigDict(
