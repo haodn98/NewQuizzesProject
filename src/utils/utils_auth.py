@@ -10,9 +10,9 @@ from jose import jwt, JWTError
 from pydantic import ValidationError
 from sqlalchemy import select
 
-from src.auth.models import User
-from src.core.config import settings
-from src.database.database import AsyncSession
+from auth.models import User
+from core.config import settings
+from database.database import AsyncSession
 
 bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/jwt/login")

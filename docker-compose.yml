@@ -43,6 +43,15 @@ services:
     ports:
       - "27017:27017"
 
+  celery:
+    build:
+      context: .
+    env_file:
+      - .env-non-dev
+    container_name: celery_app
+    command: [ "/quizzesproject/docker/celery.sh", "celery" ]
+    depends_on:
+      - redis
 
   app:
     container_name: quizzesfastapi_app

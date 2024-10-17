@@ -10,13 +10,13 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from redis.asyncio.client import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.companies.permissions import is_company_admin, is_company_member
-from src.core.mongo_config import get_mongo_database
-from src.core.redis_config import get_redis
-from src.database.database import get_db_session
-from src.quizzes.permissions import is_company_quiz
-from src.quizzes.schemas import QuizModel, AnswerForm
-from src.quizzes.services import (get_all_quizzes_service,
+from companies.permissions import is_company_admin, is_company_member
+from core.mongo_config import get_mongo_database
+from core.redis_config import get_redis
+from database.database import get_db_session
+from quizzes.permissions import is_company_quiz
+from quizzes.schemas import QuizModel, AnswerForm
+from quizzes.services import (get_all_quizzes_service,
                               create_quizzes_service,
                               get_quiz_service,
                               get_quiz_answers_service,
@@ -35,7 +35,7 @@ from src.quizzes.services import (get_all_quizzes_service,
                               get_quizzes_results_csv_services,
                               get_user_quiz_result_service,
                               get_quiz_results_service)
-from src.utils.utils_auth import get_current_user
+from utils.utils_auth import get_current_user
 
 router = APIRouter(
     prefix="/quizzes",

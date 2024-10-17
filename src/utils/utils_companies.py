@@ -2,7 +2,7 @@ from fastapi import HTTPException, status
 from redis.asyncio.client import Redis
 from sqlalchemy import select
 
-from src.companies.models import CompanyRole, CompanyMember
+from companies.models import CompanyRole, CompanyMember
 
 
 async def get_company_role(db, role_name: str, redis: Redis):
